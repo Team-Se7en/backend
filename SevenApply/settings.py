@@ -34,6 +34,11 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -43,9 +48,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "debug_toolbar",
 ]
 
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -76,7 +83,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "SevenApply.wsgi.application"
 
 DATABASES = {
-    'default': dj_database_url.config(
+    "default": dj_database_url.config(
         default=env("DB_URL"),
         conn_max_age=600,
         conn_health_checks=True,
