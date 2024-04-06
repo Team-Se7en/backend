@@ -13,4 +13,5 @@ class UserCreateSerializer(BaseUCS):
             "first_name",
             "last_name",
             "password",
+            "is_student",
         )
