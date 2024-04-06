@@ -7,6 +7,7 @@ from .models import *
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
+    ordering=['email']
     add_fieldsets = (
         (
             None,
