@@ -1,0 +1,9 @@
+DB_URL="postgresql://sevenDB_owner:egZUu48XVKcj@ep-noisy-sea-a2al6akz.eu-central-1.aws.neon.tech/sevenDB?sslmode=require"
+SECRET_KEY="django-insecure-728k0bs%91o$^sp%aa_ji@2fmtwpdk7r1na#*$%l2+%)7tnpo3"
+
+EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT=587
+EMAIL_HOST_USER="se7enapplyauth@gmail.com"
+EMAIL_HOST_PASSWORD="kbmofikzdhlgmhyt"
+EMAIL_USE_TLS=True
