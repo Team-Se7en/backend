@@ -12,12 +12,11 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 import os
 import dj_database_url
+from dotenv import load_dotenv
 from pathlib import Path
-import environ
 
-env = environ.Env()
-environ.Env.read_env()
-
+load_dotenv()
+env = os.environ.get
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -88,7 +87,7 @@ WSGI_APPLICATION = "SevenApply.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(
-        default=env("DB_URL"),
+        default=env("DATABASE_URL"),
         conn_max_age=600,
         conn_health_checks=True,
     )
