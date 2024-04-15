@@ -5,13 +5,10 @@ from .models import *
 
 
 class UserSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(read_only=True)
-
     class Meta:
         model = apps.get_model(settings.AUTH_USER_MODEL)
         fields = [
             "id",
-            "email",
             "first_name",
             "last_name",
         ]
