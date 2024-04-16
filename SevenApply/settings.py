@@ -162,6 +162,8 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "API Documentation",
 }
 
+DOMAIN = 'localhost:5173'
+SITE_NAME = 'Frontend'
 DJOSER = {
     "LOGIN_FIELD": "email",
     "USER_CREATE_PASSWORD_RETYPE": True,
