@@ -3,6 +3,8 @@ from . import views
 from rest_framework.routers import SimpleRouter
 
 router = SimpleRouter()
-router.register('students',views.StudentViewSet)
+router.register('students',views.StudentGetListViewSet)
 
-urlpatterns = router.urls
+urlpatterns = [
+    path('',include(router.urls)),
+]
