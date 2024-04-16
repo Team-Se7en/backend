@@ -5,7 +5,10 @@ class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = ([
-            'student_name'
+            'id',
+            'user',
+            'student_name',
+            'university_name',
         ])
 
     student_name = serializers.SerializerMethodField(method_name='get_student_name')
