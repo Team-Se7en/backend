@@ -6,6 +6,13 @@ from django.db import models
 # Create your models here.
 
 
+class Student(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="user_profile"
+    )
+    university_name = models.CharField(max_length=255,null=True)
+    ssn = models.IntegerField(null=True)
+
 class Professor(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     university = models.CharField(max_length=255)
