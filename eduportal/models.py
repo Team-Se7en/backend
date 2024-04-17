@@ -22,3 +22,23 @@ class Professor(models.Model):
     @admin.display(ordering="user__last_name")
     def last_name(self):
         return self.user.last_name
+
+
+class Tag(models.Model):
+    label = models.CharField(max_length=31)
+
+
+class Position(models.Model):
+    title = models.CharField(max_length=63)
+    description = models.TextField()
+    tags = models.ManyToManyField(Tag)
+    professor = models.ForeignKey(
+        Professor, on_delete=models.PROTECT, related_name="positions"
+    )
+    capacity = models.IntegerField()
+    filled = models.IntegerField(default=0)
+    request_count = models.IntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    deadline = models.DateField()
