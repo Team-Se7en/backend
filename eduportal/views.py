@@ -14,7 +14,6 @@ from rest_framework.mixins import *
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
-
 from .models import *
 from .serializers import *
 
@@ -24,7 +23,7 @@ class StudentGetListViewSet(
     viewsets.GenericViewSet,
 ):
     queryset = Student.objects.all()
-    serializer_class = serializers.StudentGetListSerializer
+    serializer_class = StudentGetListSerializer
 
 
 class StudentProfileViewSet(
@@ -34,7 +33,7 @@ class StudentProfileViewSet(
     viewsets.GenericViewSet,
 ):
     queryset = Student.objects.all()
-    serializer_class = serializers.StudentProfileSerializer
+    serializer_class = StudentProfileSerializer
     permission_classes = [IsAuthenticated, CurrentUserOrAdmin]
     http_method_names = [
         "get",

@@ -66,7 +66,6 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "university_name",
             "user_profile",
             "ssn",
-            "country",
         ]
 
     user_profile = serializers.SerializerMethodField(method_name="username")
