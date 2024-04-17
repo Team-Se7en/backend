@@ -7,7 +7,5 @@ router = routers.DefaultRouter()
 router.register("professors", views.ProfessorViewSet)
 
 
-urlpatterns = [
-    path("students/",views.StudentListAPI.as_view())
-]
+urlpatterns = []
 urlpatterns += router.urls

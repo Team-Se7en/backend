@@ -14,17 +14,6 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
 
-class StudentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Student
-        fields = ["student_name"]
-
-    student_name = serializers.SerializerMethodField(method_name="get_student_name")
-
-    def get_student_name(self, student: Student):
-        return student.user.first_name + student.user.last_name
-
-
 class ProfessorSerializer(serializers.ModelSerializer):
     user = UserSerializer()
 

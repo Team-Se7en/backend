@@ -10,11 +10,6 @@ from .models import *
 from .serializers import *
 
 
-class StudentListAPI(ListAPIView):
-    queryset = Student.objects.select_related("user").all()
-    serializer_class = StudentSerializer
-
-
 class ProfessorViewSet(
     ListModelMixin,
     RetrieveModelMixin,
