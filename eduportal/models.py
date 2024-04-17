@@ -31,7 +31,7 @@ class Tag(models.Model):
 class Position(models.Model):
     title = models.CharField(max_length=63)
     description = models.TextField()
-    tags = models.ManyToManyField(Tag)
+    tags = models.ManyToManyField(Tag, blank=True)
     professor = models.ForeignKey(
         Professor, on_delete=models.PROTECT, related_name="positions"
     )
