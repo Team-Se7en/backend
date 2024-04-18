@@ -49,3 +49,13 @@ class Position(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deadline = models.DateField()
+
+class Request(models.Model):
+    REQUEST_STATUS = [
+        ("P","Pending"),
+        ("R","Rejected"),
+        ("A","Accepted"),
+    ]
+    position = models.ForeignKey(Position,on_delete=models.CASCADE)
+    student = models.ForeignKey(Student,on_delete=models.CASCADE)
+    status = models.CharField(max_length=1,choices=REQUEST_STATUS,default="P",blank=True)
