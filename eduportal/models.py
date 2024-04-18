@@ -59,3 +59,6 @@ class Request(models.Model):
     position = models.ForeignKey(Position,on_delete=models.CASCADE)
     student = models.ForeignKey(Student,on_delete=models.CASCADE)
     status = models.CharField(max_length=1,choices=REQUEST_STATUS,default="P",blank=True)
+    date_applied = models.DateTimeField(auto_now_add=True)
+    # متنی که دانشجو در ریکوئست می‌نویسد
+    cover_letter = models.TextField()
