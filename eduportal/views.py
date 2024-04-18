@@ -22,32 +22,41 @@ class StudentGetListViewSet(
     ListModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = Student.objects.all()
+    queryset = Student.objects.select_related('user').all()
     serializer_class = StudentGetListSerializer
 
 
 class StudentProfileViewSet(
-    RetrieveModelMixin,
-    UpdateModelMixin,
-    DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     queryset = Student.objects.all()
     serializer_class = StudentProfileSerializer
-    permission_classes = [IsAuthenticated, CurrentUserOrAdmin]
     http_method_names = [
         "get",
         "patch",
         "delete",
     ]
-    def destroy(self, request, *args, **kwargs):
-        student_id = self.kwargs["pk"]
-        student = get_object_or_404(Student, pk=student_id)
-        user = student.user 
-        student.delete()
-        user.delete()
-        return Response(status=status.HTTP_202_ACCEPTED)
 
+    @action(
+        detail=False,
+        methods=["GET", "PATCH","DELETE"],
+        permission_classes=[IsAuthenticated],
+    )
+    def me(self, request ,  *args, **kwargs):
+        student = get_object_or_404(Student, user_id=request.user.id)
+        if request.method == "GET":
+            serializer = StudentProfileSerializer(student)
+            return Response(serializer.data)
+        elif request.method == "PATCH":
+            serializer = StudentProfileSerializer(student, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        elif request.method == "DELETE":
+            user = student.user 
+            student.delete()
+            user.delete()
+            return Response(status=status.HTTP_202_ACCEPTED)
 
 
 class ProfessorViewSet(

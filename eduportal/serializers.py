@@ -47,11 +47,11 @@ class StudentGetListSerializer(serializers.ModelSerializer):
         # fields need to be changed
         fields = [
             "id",
-            "user",
             "student_name",
             "university_name",
+            "user",
         ]
-
+    user = UserSerializer()
     student_name = serializers.SerializerMethodField(method_name="get_student_name")
 
     def get_student_name(self, student: Student) -> str:
@@ -65,10 +65,25 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         fields = [
             "university_name",
             "user_profile",
+            "user",
             "ssn",
         ]
 
+    user = UserSerializer()
     user_profile = serializers.SerializerMethodField(method_name="username")
 
     def username(self, student: Student):
         return student.user.id
+
+    def update(self, instance, validated_data):
+        try:
+            user_data = validated_data.pop("user")
+            user_instance = instance.user
+            user_serializer = UserSerializer(
+                user_instance, data=user_data, partial=True
+            )
+            user_serializer.is_valid(raise_exception=True)
+            user_serializer.save()
+        except KeyError:
+            pass
+        return super().update(instance, validated_data)
