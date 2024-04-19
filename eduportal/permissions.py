@@ -17,3 +17,8 @@ class IsPositionOwner(BasePermission):
             and request.user.is_authenticated
             and (request.user.id == obj.professor.user.id)
         )
+
+
+class AllowNone(BasePermission):
+    def has_permission(self, request, view):
+        return False

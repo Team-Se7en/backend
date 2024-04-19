@@ -4,6 +4,9 @@ from .models import *
 from rest_framework import serializers
 
 
+# User Serializers -------------------------------------------------------------
+
+
 class SimpleUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = apps.get_model(settings.AUTH_USER_MODEL)
@@ -14,67 +17,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
         ]
 
 
-class ProfessorSerializer(serializers.ModelSerializer):
-    user = SimpleUserSerializer()
-
-    class Meta:
-        model = Professor
-        fields = [
-            "id",
-            "user",
-            "university",
-            "department",
-            "birth_date",
-        ]
-
-    def update(self, instance, validated_data):
-        try:
-            user_data = validated_data.pop("user")
-            user_instance = instance.user
-            user_serializer = SimpleUserSerializer(
-                user_instance, data=user_data, partial=True
-            )
-            user_serializer.is_valid(raise_exception=True)
-            user_serializer.save()
-        except KeyError:
-            pass
-        return super().update(instance, validated_data)
-
-
-class ReadTagSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tag
-        fields = ["label"]
-
-
-class ReadPositionSerializer(serializers.ModelSerializer):
-    professor = ProfessorSerializer()
-    tags = serializers.SlugRelatedField(
-        slug_field="label", many=True, queryset=Tag.objects.all()
-    )
-
-    class Meta:
-        model = Position
-        fields = "__all__"
-
-    def get_professor_name(self, position: Position):
-        return (
-            f"{position.professor.user.first_name} {position.professor.user.last_name}"
-        )
-
-
-class CreatePositionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Position
-        exclude = (
-            "professor",
-            "request_count",
-            "filled",
-        )
-
-    def create(self, validated_data):
-        validated_data["professor_id"] = self.context["professor_id"]
-        return super().create(validated_data)
+# Student Serializers ----------------------------------------------------------
 
 
 class StudentGetListSerializer(serializers.ModelSerializer):
@@ -122,5 +65,125 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             user_serializer.is_valid(raise_exception=True)
             user_serializer.save()
         except KeyError:
-            pass
+
+            class Meta:
+                model = Tag
+                exclude = ()
+
         return super().update(instance, validated_data)
+
+
+# Professor Serializers --------------------------------------------------------
+
+
+class ProfessorSerializer(serializers.ModelSerializer):
+    user = SimpleUserSerializer()
+
+    class Meta:
+        model = Professor
+        fields = [
+            "id",
+            "user",
+            "university",
+            "department",
+            "birth_date",
+        ]
+
+    def update(self, instance, validated_data):
+        try:
+            user_data = validated_data.pop("user")
+            user_instance = instance.user
+            user_serializer = SimpleUserSerializer(
+                user_instance, data=user_data, partial=True
+            )
+            user_serializer.is_valid(raise_exception=True)
+            user_serializer.save()
+        except KeyError:
+
+            class Meta:
+                model = Tag
+                exclude = ()
+
+        return super().update(instance, validated_data)
+
+
+# Position Serializers ---------------------------------------------------------
+
+
+class ReadTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ["label"]
+
+
+class BasePositionListSerializer(serializers.ModelSerializer):
+    professor = ProfessorSerializer()
+    tags = serializers.SlugRelatedField(
+        slug_field="label", many=True, queryset=Tag.objects.all()
+    )
+
+    class Meta:
+        model = Position
+        exclude = [
+            "description",
+            "capacity",
+            "filled",
+            "request_count",
+        ]
+
+
+class AnonymousPositionListSerializer(BasePositionListSerializer):
+    pass
+
+
+class StudentPositionListSerializer(BasePositionListSerializer):
+    remaining = serializers.SerializerMethodField("get_remaining")
+
+    def get_remaining(self, pos: Position):
+        return pos.capacity - pos.filled
+
+
+class ProfessorPositionListSerializer(BasePositionListSerializer):
+    pass
+
+
+class BasePositionDetailSerializer(serializers.ModelSerializer):
+    professor = ProfessorSerializer()
+    tags = serializers.SlugRelatedField(
+        slug_field="label", many=True, queryset=Tag.objects.all()
+    )
+
+    class Meta:
+        model = Position
+        exclude = ["capacity", "filled", "request_count"]
+
+
+class StudentPositionDetailSerializer(BasePositionDetailSerializer):
+    remaining = serializers.SerializerMethodField("get_remaining")
+
+    def get_remaining(self, pos: Position):
+        return pos.capacity - pos.filled
+
+
+class ProfessorPositionDetailSerializer(BasePositionDetailSerializer):
+    pass
+
+
+class OwnerPositionDetailSerializer(BasePositionDetailSerializer):
+    class Meta:
+        model = Position
+        fields = "__all__"
+
+
+class PositionUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Position
+        exclude = (
+            "professor",
+            "request_count",
+            "filled",
+        )
+
+    def create(self, validated_data):
+        validated_data["professor_id"] = self.context["professor_id"]
+        return super().create(validated_data)

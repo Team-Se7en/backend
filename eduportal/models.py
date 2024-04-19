@@ -10,8 +10,9 @@ class Student(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="user_profile"
     )
-    university_name = models.CharField(max_length=255,null=True)
+    university_name = models.CharField(max_length=255, null=True)
     ssn = models.IntegerField(null=True)
+
 
 class Professor(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
