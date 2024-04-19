@@ -4,7 +4,7 @@ from .models import *
 from rest_framework import serializers
 
 
-class UserSerializer(serializers.ModelSerializer):
+class SimpleUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = apps.get_model(settings.AUTH_USER_MODEL)
         fields = [
@@ -15,7 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ProfessorSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
+    user = SimpleUserSerializer()
 
     class Meta:
         model = Professor
@@ -31,7 +31,7 @@ class ProfessorSerializer(serializers.ModelSerializer):
         try:
             user_data = validated_data.pop("user")
             user_instance = instance.user
-            user_serializer = UserSerializer(
+            user_serializer = SimpleUserSerializer(
                 user_instance, data=user_data, partial=True
             )
             user_serializer.is_valid(raise_exception=True)
@@ -117,7 +117,8 @@ class StudentGetListSerializer(serializers.ModelSerializer):
             "university_name",
             "user",
         ]
-    user = UserSerializer()
+
+    user = SimpleUserSerializer()
     student_name = serializers.SerializerMethodField(method_name="get_student_name")
 
     def get_student_name(self, student: Student) -> str:
@@ -135,7 +136,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "ssn",
         ]
 
-    user = UserSerializer()
+    user = SimpleUserSerializer()
     user_profile = serializers.SerializerMethodField(method_name="username")
 
     def username(self, student: Student):
@@ -145,7 +146,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         try:
             user_data = validated_data.pop("user")
             user_instance = instance.user
-            user_serializer = UserSerializer(
+            user_serializer = SimpleUserSerializer(
                 user_instance, data=user_data, partial=True
             )
             user_serializer.is_valid(raise_exception=True)

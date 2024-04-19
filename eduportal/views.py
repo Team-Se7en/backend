@@ -23,7 +23,7 @@ class StudentGetListViewSet(
     ListModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = Student.objects.select_related('user').all()
+    queryset = Student.objects.select_related("user").all()
     serializer_class = StudentGetListSerializer
 
 
@@ -40,21 +40,23 @@ class StudentProfileViewSet(
 
     @action(
         detail=False,
-        methods=["GET", "PATCH","DELETE"],
+        methods=["GET", "PATCH", "DELETE"],
         permission_classes=[IsAuthenticated],
     )
-    def me(self, request ,  *args, **kwargs):
+    def me(self, request, *args, **kwargs):
         student = get_object_or_404(Student, user_id=request.user.id)
         if request.method == "GET":
             serializer = StudentProfileSerializer(student)
             return Response(serializer.data)
         elif request.method == "PATCH":
-            serializer = StudentProfileSerializer(student, data=request.data, partial=True)
+            serializer = StudentProfileSerializer(
+                student, data=request.data, partial=True
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
         elif request.method == "DELETE":
-            user = student.user 
+            user = student.user
             student.delete()
             user.delete()
             return Response(status=status.HTTP_202_ACCEPTED)
@@ -86,13 +88,20 @@ class ProfessorViewSet(
             return Response(serializer.data)
 
 
+class TagListViewSet(
+    ListModelMixin,
+    GenericViewSet,
+):
+    queryset = Tag.objects.all()
+    serializer_class = ReadTagSerializer
+
+
 class PositionViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.request.method == "GET":
             return ReadPositionSerializer
         elif self.request.method == "POST":
             return CreatePositionSerializer
-        print(self.request.method)
         return ReadPositionSerializer
 
     def get_queryset(self):
