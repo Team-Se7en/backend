@@ -147,6 +147,11 @@ class ProfessorPositionListSerializer(BasePositionListSerializer):
     pass
 
 
+class OwnerPositionListSerializer(BasePositionListSerializer):
+    class Meta(BasePositionListSerializer.Meta):
+        exclude = ["description"]
+
+
 class BasePositionDetailSerializer(serializers.ModelSerializer):
     professor = ProfessorSerializer()
     tags = serializers.SlugRelatedField(

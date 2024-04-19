@@ -80,7 +80,7 @@ class ProfessorViewSet(
     @action(
         detail=False,
         methods=["GET", "PATCH"],
-        permission_classes=[IsAuthenticated],
+        permission_classes=[IsProfessor],
     )
     def me(self, request):
         professor = get_object_or_404(Professor, user_id=request.user.id)
@@ -92,6 +92,25 @@ class ProfessorViewSet(
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
+
+    @action(detail=False, methods=["GET"], permission_classes=[IsProfessor])
+    def my_positions(self, request):
+        professor = get_object_or_404(Professor, user_id=request.user.id)
+        positions = Position.objects.filter(professor=professor)
+        positions = positions.select_related(
+            "professor", "professor__user"
+        ).prefetch_related("tags")
+        serializer = OwnerPositionListSerializer(positions, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["GET"], permission_classes=[IsProfessor])
+    def my_recent_positions(self, request):
+        professor = get_object_or_404(Professor, user_id=request.user.id)
+        positions = Position.objects.filter(professor=professor).order_by(
+            "-created_at"
+        )[:5]
+        serializer = OwnerPositionListSerializer(positions, many=True)
+        return Response(serializer.data)
 
 
 # Position Views ---------------------------------------------------------------
