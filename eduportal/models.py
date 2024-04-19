@@ -71,6 +71,8 @@ class Position(models.Model):
     starts_at = models.DateField()
     duration = models.DurationField()
 
+    fee = models.FloatField()
+
 class Request(models.Model):
     REQUEST_STATUS = [
         ("P","Pending"),
