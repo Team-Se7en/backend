@@ -25,7 +25,10 @@ class Professor(models.Model):
 
 
 class Tag(models.Model):
-    label = models.CharField(max_length=31)
+    label = models.CharField(max_length=31, primary_key=True)
+
+    def __str__(self) -> str:
+        return self.label
 
 
 class Position(models.Model):
