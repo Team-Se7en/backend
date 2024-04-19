@@ -10,6 +10,6 @@ def create_profile_for_new_user(sender, **kwargs):
         user = kwargs["instance"]
 
         if user.is_student:
-            pass
+            Student.objects.create(user=user)
         else:
             Professor.objects.create(user=user)
