@@ -195,7 +195,7 @@ class PositionViewSet(ModelViewSet):
 
 class RequestViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
-    http_method_names = ['get','patch','delete']
+    http_method_names = ['post','get','patch','delete']
 
     def get_queryset(self):
         position_id = self.get_object().position.id
