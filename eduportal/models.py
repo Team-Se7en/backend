@@ -1,17 +1,28 @@
 from django.contrib import admin
 from django.conf import settings
 from django.db import models
-
+from .majors import *
 
 # Create your models here.
 
 
 class Student(models.Model):
+    GENDER = [
+        ("M", "Male"),
+        ("F", "Female"),
+        ("R", "Rather not to say"),
+    ]
+    STATUS = [("A", "Active"), ("I", "Inactive"), ("G", "Graduated")]
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="user_profile"
     )
     university_name = models.CharField(max_length=255, null=True)
     ssn = models.IntegerField(null=True)
+    gender = models.CharField(max_length=1, choices=GENDER, null=True)
+    nationality = models.CharField(max_length=50, null=True)
+    enrollment_date = models.DateField(null=True)
+    status = models.CharField(max_length=1, choices=STATUS, null=True)
+    major = models.CharField(max_length=4, choices=MAJORS, null=True)
 
 
 class Professor(models.Model):
@@ -53,6 +64,26 @@ class Position(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deadline = models.DateField()
-
     starts_at = models.DateField()
     duration = models.DurationField()
+
+    fee = models.FloatField()
+
+class Request(models.Model):
+    REQUEST_STATUS = [
+        ("P", "Pending"),
+        ("R", "Rejected"),
+        ("A", "Accepted"),
+    ]
+    position = models.ForeignKey(Position, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    status = models.CharField(
+        max_length=1,
+        choices=REQUEST_STATUS,
+        default="P",
+        blank=True,
+        null=True
+    )
+    date_applied = models.DateTimeField(auto_now_add=True,null=True)
+    # متنی که دانشجو در ریکوئست می‌نویسد
+    cover_letter = models.TextField()
