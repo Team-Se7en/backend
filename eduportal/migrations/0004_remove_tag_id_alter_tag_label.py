@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("eduportal", "0003_alter_position_tags"),
+        ("eduportal", "0004_alter_position_tags"),
     ]
 
     operations = [

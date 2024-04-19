@@ -38,7 +38,7 @@ class StudentGetListSerializer(serializers.ModelSerializer):
         return student.user.first_name + " " + student.user.last_name
 
 
-class StudentProfileSerializer(serializers.ModelSerializer):
+class OwnStudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         # fields need to be changed
@@ -192,3 +192,28 @@ class PositionUpdateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["professor_id"] = self.context["professor_id"]
         return super().create(validated_data)
+
+# Request Serializers ----------------------------------------------------------
+
+class StudentRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Request
+        fields = (
+            "status",
+            "position",
+            "date_applied",
+            "cover_letter"
+        )
+
+    def create(self, validated_data):
+        # Extract the user from the request
+        user = self.context['request'].user
+
+        # Get the student associated with the user
+        student = Student.objects.get(user=user)
+        validated_data['student'] = student
+
+        # Create the request
+        request = Request.objects.create(**validated_data)
+
+        return request

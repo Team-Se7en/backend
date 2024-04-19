@@ -26,7 +26,7 @@ class Student(models.Model):
     nationality = models.CharField(max_length=50,null=True)
     enrollment_date = models.DateField(null=True)
     status = models.CharField(max_length=1,choices=STATUS,null=True)
-    major = models.CharField(max_length=4,choices=MAJORS)
+    major = models.CharField(max_length=4,choices=MAJORS,null=True)
 
 
 class Professor(models.Model):

@@ -34,7 +34,7 @@ class StudentProfileViewSet(
     viewsets.GenericViewSet,
 ):
     queryset = Student.objects.all()
-    serializer_class = StudentProfileSerializer
+    serializer_class = OwnStudentProfileSerializer
     http_method_names = [
         "get",
         "patch",
@@ -49,10 +49,10 @@ class StudentProfileViewSet(
     def me(self, request, *args, **kwargs):
         student = get_object_or_404(Student, user_id=request.user.id)
         if request.method == "GET":
-            serializer = StudentProfileSerializer(student)
+            serializer = OwnStudentProfileSerializer(student)
             return Response(serializer.data)
         elif request.method == "PATCH":
-            serializer = StudentProfileSerializer(
+            serializer = OwnStudentProfileSerializer(
                 student, data=request.data, partial=True
             )
             serializer.is_valid(raise_exception=True)
@@ -187,4 +187,32 @@ class PositionViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         position = serializer.save()
         serializer = ProfessorPositionDetailSerializer(position)
+        return Response(serializer.data)
+
+
+# Request Views ----------------------------------------------------------------
+
+
+class RequestViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get','patch','delete']
+
+    def get_queryset(self):
+        position_id = self.get_object().position.id
+        student_id = self.get_object().student.user.id
+        req = Request.objects.filter(position__id=position_id).filter(
+            student__user__id=student_id
+        )
+        return req
+
+    def get_serializer_class(self):
+        return StudentRequestSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = StudentRequestSerializer(
+            data=request.data, context={"student_id": self.request.user.student.id}
+        )
+        serializer.is_valid(raise_exception=True)
+        position = serializer.save()
+        serializer = StudentRequestSerializer(position)
         return Response(serializer.data)
