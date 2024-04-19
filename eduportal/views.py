@@ -193,24 +193,33 @@ class PositionViewSet(ModelViewSet):
 # Request Views ----------------------------------------------------------------
 
 
-class RequestViewSet(ModelViewSet):
+class RequestViewSet(
+    CreateModelMixin,
+    RetrieveModelMixin,
+    DestroyModelMixin,
+    GenericViewSet,
+):
     permission_classes = [IsAuthenticated]
-    http_method_names = ['post','get','patch','delete']
+    http_method_names = ["post", "get", "delete"]
 
     def get_queryset(self):
-        position_id = self.get_object().position.id
-        student_id = self.get_object().student.user.id
-        req = Request.objects.filter(position__id=position_id).filter(
-            student__user__id=student_id
-        )
-        return req
+        # position_id = self.get_object().position.id
+        # student_id = self.get_object().student.user.id
+        # req = Request.objects.filter(position__id=position_id).filter(
+        #     student__user__id=student_id
+        # )
+        # return req
+        return Request.objects.filter(student__id = self.request.user.id)
 
     def get_serializer_class(self):
         return StudentRequestSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = StudentRequestSerializer(
-            data=request.data, context={"student_id": self.request.user.student.id}
+            data=request.data,
+            context={
+                "student_id": self.request.user.student.id,
+            },
         )
         serializer.is_valid(raise_exception=True)
         position = serializer.save()
