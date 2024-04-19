@@ -20,13 +20,14 @@ class Student(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="user_profile"
     )
-    university_name = models.CharField(max_length=255,null=True)
+    university_name = models.CharField(max_length=255, null=True)
     ssn = models.IntegerField(null=True)
     gender = models.CharField(max_length=1,choices=GENDER,null=True)
     nationality = models.CharField(max_length=50,null=True)
     enrollment_date = models.DateField(null=True)
     status = models.CharField(max_length=1,choices=STATUS,null=True)
     major = models.CharField(max_length=4,choices=MAJORS)
+
 
 class Professor(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -47,7 +48,10 @@ class Professor(models.Model):
 
 
 class Tag(models.Model):
-    label = models.CharField(max_length=31)
+    label = models.CharField(max_length=31, primary_key=True)
+
+    def __str__(self) -> str:
+        return self.label
 
 
 class Position(models.Model):
@@ -64,6 +68,8 @@ class Position(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deadline = models.DateField()
+    starts_at = models.DateField()
+    duration = models.DurationField()
 
 class Request(models.Model):
     REQUEST_STATUS = [
