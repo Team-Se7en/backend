@@ -225,3 +225,9 @@ class RequestViewSet(
         position = serializer.save()
         serializer = StudentRequestSerializer(position)
         return Response(serializer.data)
+
+
+class AdmissionViewSet(ListModelMixin,GenericViewSet):
+    serializer_class = AdmissionSerializer
+    queryset = Request.objects.filter(status = "P").all()
+

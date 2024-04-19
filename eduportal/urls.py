@@ -11,7 +11,7 @@ router.register("professors", views.ProfessorViewSet)
 router.register("positions", views.PositionViewSet, basename="positions")
 router.register("tags", views.TagListViewSet)
 router.register("requests",views.RequestViewSet,basename="request")
-
+router.register("admissions",views.AdmissionViewSet,basename="admission")
 
 urlpatterns = []
 urlpatterns += router.urls

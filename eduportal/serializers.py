@@ -217,3 +217,13 @@ class StudentRequestSerializer(serializers.ModelSerializer):
         request = Request.objects.create(**validated_data)
 
         return request
+
+class AdmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Request
+        fields = (
+            "date_applied",
+            "student",
+            "status",
+        )
+    student = StudentGetListSerializer()
