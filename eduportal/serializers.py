@@ -66,41 +66,11 @@ class ReadPositionSerializer(serializers.ModelSerializer):
 class CreatePositionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Position
-        # fields = "__all__"
-        exclude = ("professor",)
-
-    def create(self, validated_data):
-        validated_data["professor_id"] = self.context["professor_id"]
-        return super().create(validated_data)
-
-
-class ReadTagSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tag
-        fields = ["label"]
-
-
-class ReadPositionSerializer(serializers.ModelSerializer):
-    professor = ProfessorSerializer()
-    tags = serializers.SlugRelatedField(
-        slug_field="label", many=True, queryset=Tag.objects.all()
-    )
-
-    class Meta:
-        model = Position
-        fields = "__all__"
-
-    def get_professor_name(self, position: Position):
-        return (
-            f"{position.professor.user.first_name} {position.professor.user.last_name}"
+        exclude = (
+            "professor",
+            "request_count",
+            "filled",
         )
-
-
-class CreatePositionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Position
-        # fields = "__all__"
-        exclude = ("professor",)
 
     def create(self, validated_data):
         validated_data["professor_id"] = self.context["professor_id"]

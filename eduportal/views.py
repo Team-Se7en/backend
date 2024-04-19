@@ -100,7 +100,7 @@ class PositionViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.request.method == "GET":
             return ReadPositionSerializer
-        elif self.request.method == "POST":
+        elif self.request.method in ["POST", "PUT", "PATCH"]:
             return CreatePositionSerializer
         return ReadPositionSerializer
 
@@ -108,10 +108,14 @@ class PositionViewSet(ModelViewSet):
         return Position.objects.select_related("professor", "professor__user").all()
 
     def get_permissions(self):
-        if self.request.method == "POST":
-            return [IsProfessor()]
-        else:
+        if self.request.method == "GET":
             return []
+        elif self.request.method == "POST":
+            return [IsProfessor()]
+        elif self.request.method in ["PUT", "PATCH", "DELETE"]:
+            return [IsPositionOwner()]
+        else:
+            return [IsProfessor()]
 
     def create(self, request, *args, **kwargs):
         serializer = CreatePositionSerializer(
