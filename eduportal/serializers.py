@@ -1,5 +1,8 @@
 from django.conf import settings
 from django.apps import apps
+from django.utils import timezone
+
+from eduportal.models import Position
 from .models import *
 from rest_framework import serializers
 
@@ -7,7 +10,9 @@ from rest_framework import serializers
 # User Serializers -------------------------------------------------------------
 
 
-class SimpleUserSerializer(serializers.ModelSerializer):
+class SimpleUserSerializer(
+    serializers.ModelSerializer,
+):
     class Meta:
         model = apps.get_model(settings.AUTH_USER_MODEL)
         fields = [
@@ -76,7 +81,9 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
 # Professor Serializers --------------------------------------------------------
 
 
-class ProfessorSerializer(serializers.ModelSerializer):
+class ProfessorSerializer(
+    serializers.ModelSerializer,
+):
     user = SimpleUserSerializer()
 
     class Meta:
@@ -110,18 +117,35 @@ class ProfessorSerializer(serializers.ModelSerializer):
 # Position Serializers ---------------------------------------------------------
 
 
-class ReadTagSerializer(serializers.ModelSerializer):
+class ReadTagSerializer(
+    serializers.ModelSerializer,
+):
     class Meta:
         model = Tag
         fields = ["label"]
 
 
-class BasePositionListSerializer(serializers.ModelSerializer):
+class BasePositionSerializer(
+    serializers.ModelSerializer,
+):
+    status = serializers.SerializerMethodField("get_status")
     professor = ProfessorSerializer()
     tags = serializers.SlugRelatedField(
         slug_field="label", many=True, queryset=Tag.objects.all()
     )
 
+    def get_status(self, pos: Position):
+        (OPEN, CLOSED) = ("Open", "Closed")
+        if pos.capacity <= pos.filled:
+            return CLOSED
+        if pos.deadline < timezone.now().date():
+            return CLOSED
+        return OPEN
+
+
+class BasePositionListSerializer(
+    BasePositionSerializer,
+):
     class Meta:
         model = Position
         exclude = [
@@ -132,86 +156,110 @@ class BasePositionListSerializer(serializers.ModelSerializer):
         ]
 
 
-class AnonymousPositionListSerializer(BasePositionListSerializer):
-    pass
-
-
-class StudentPositionListSerializer(BasePositionListSerializer):
-    remaining = serializers.SerializerMethodField("get_remaining")
-
-    def get_remaining(self, pos: Position):
-        return pos.capacity - pos.filled
-
-
-class ProfessorPositionListSerializer(BasePositionListSerializer):
-    pass
-
-
-class OwnerPositionListSerializer(BasePositionListSerializer):
-    class Meta(BasePositionListSerializer.Meta):
-        exclude = ["description"]
-
-
-class BasePositionDetailSerializer(serializers.ModelSerializer):
-    professor = ProfessorSerializer()
-    tags = serializers.SlugRelatedField(
-        slug_field="label", many=True, queryset=Tag.objects.all()
-    )
-
+class BasePositionDetailSerializer(
+    BasePositionSerializer,
+):
     class Meta:
         model = Position
-        exclude = ["capacity", "filled", "request_count"]
+        exclude = [
+            "capacity",
+            "filled",
+            "request_count",
+        ]
 
 
-class StudentPositionDetailSerializer(BasePositionDetailSerializer):
-    remaining = serializers.SerializerMethodField("get_remaining")
-
+class StudentStatusMixin:
     def get_remaining(self, pos: Position):
         return pos.capacity - pos.filled
 
+    def get_status(self, pos: Position):
+        my_requests = getattr(pos, "my_request", [])
+        if my_requests:
+            my_req = my_requests[0]
+            return my_req.get_status_display()
+        return super().get_status(pos)
 
-class ProfessorPositionDetailSerializer(BasePositionDetailSerializer):
+
+class AnonymousPositionListSerializer(
+    BasePositionListSerializer,
+):
     pass
 
 
-class OwnerPositionDetailSerializer(BasePositionDetailSerializer):
+class StudentPositionListSerializer(
+    StudentStatusMixin,
+    BasePositionListSerializer,
+):
+    remaining = serializers.SerializerMethodField("get_remaining")
+
+
+class ProfessorPositionListSerializer(
+    BasePositionListSerializer,
+):
+    pass
+
+
+class OwnerPositionListSerializer(
+    BasePositionListSerializer,
+):
+    class Meta(BasePositionListSerializer.Meta):
+        exclude = [
+            "description",
+        ]
+
+
+class StudentPositionDetailSerializer(
+    StudentStatusMixin,
+    BasePositionDetailSerializer,
+):
+    remaining = serializers.SerializerMethodField("get_remaining")
+
+
+class ProfessorPositionDetailSerializer(
+    BasePositionDetailSerializer,
+):
+    pass
+
+
+class OwnerPositionDetailSerializer(
+    BasePositionDetailSerializer,
+):
     class Meta:
         model = Position
         fields = "__all__"
 
 
-class PositionUpdateSerializer(serializers.ModelSerializer):
+class PositionUpdateSerializer(
+    serializers.ModelSerializer,
+):
     class Meta:
         model = Position
-        exclude = (
+        exclude = [
             "professor",
             "request_count",
             "filled",
-        )
+        ]
 
     def create(self, validated_data):
         validated_data["professor_id"] = self.context["professor_id"]
         return super().create(validated_data)
 
+
 # Request Serializers ----------------------------------------------------------
+
 
 class StudentRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Request
-        fields = (
-            "status",
-            "position",
-            "date_applied",
-            "cover_letter"
-        )
+        fields = ("status", "position", "date_applied", "cover_letter")
 
     def create(self, validated_data):
         # Extract the user from the request
-        user = self.context['request'].user
+        user = self.context["request"].user
 
         # Get the student associated with the user
         student = Student.objects.get(user=user)
-        validated_data['student'] = student
+        validated_data["student"] = student
 
         # Create the request
         request = Request.objects.create(**validated_data)
