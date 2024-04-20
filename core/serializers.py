@@ -1,5 +1,5 @@
-from djoser.serializers import UserCreateSerializer as BaseUCS
 from django.contrib.auth import get_user_model
+from djoser.serializers import UserCreateSerializer as BaseUCS
 
 User = get_user_model()
 

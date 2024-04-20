@@ -1,10 +1,10 @@
-from django.conf import settings
 from django.apps import apps
+from django.conf import settings
 from django.utils import timezone
-
 from eduportal.models import Position
-from .models import *
 from rest_framework import serializers
+
+from .models import *
 
 
 # User Serializers -------------------------------------------------------------

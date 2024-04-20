@@ -1,22 +1,16 @@
-from django.shortcuts import get_object_or_404
 from django.db.models import Prefetch
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from djoser.permissions import CurrentUserOrAdmin
-from pprint import pprint
-from rest_framework.response import Response
-from rest_framework import status
 from django.shortcuts import get_object_or_404
+from pprint import pprint
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.generics import ListAPIView
 from rest_framework.mixins import *
 from rest_framework.permissions import *
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 
 from .models import *
-from .serializers import *
 from .permissions import *
+from .serializers import *
 from .utils.views import *
 
 
