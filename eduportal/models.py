@@ -8,25 +8,21 @@ from .majors import *
 
 class Student(models.Model):
     GENDER = [
-        ("M","Male"),
-        ("F","Female"),
-        ("R","Rather not to say"),
+        ("M", "Male"),
+        ("F", "Female"),
+        ("R", "Rather not to say"),
     ]
-    STATUS = [
-        ("A","Active"),
-        ("I","Inactive"),
-        ("G","Graduated")
-    ]
+    STATUS = [("A", "Active"), ("I", "Inactive"), ("G", "Graduated")]
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="user_profile"
     )
     university_name = models.CharField(max_length=255, null=True)
     ssn = models.IntegerField(null=True)
-    gender = models.CharField(max_length=1,choices=GENDER,null=True)
-    nationality = models.CharField(max_length=50,null=True)
+    gender = models.CharField(max_length=1, choices=GENDER, null=True)
+    nationality = models.CharField(max_length=50, null=True)
     enrollment_date = models.DateField(null=True)
-    status = models.CharField(max_length=1,choices=STATUS,null=True)
-    major = models.CharField(max_length=4,choices=MAJORS,null=True)
+    status = models.CharField(max_length=1, choices=STATUS, null=True)
+    major = models.CharField(max_length=4, choices=MAJORS, null=True)
 
 
 class Professor(models.Model):
@@ -75,13 +71,19 @@ class Position(models.Model):
 
 class Request(models.Model):
     REQUEST_STATUS = [
-        ("P","Pending"),
-        ("R","Rejected"),
-        ("A","Accepted"),
+        ("P", "Pending"),
+        ("R", "Rejected"),
+        ("A", "Accepted"),
     ]
-    position = models.ForeignKey(Position,on_delete=models.CASCADE)
-    student = models.ForeignKey(Student,on_delete=models.CASCADE)
-    status = models.CharField(max_length=1,choices=REQUEST_STATUS,default="P",blank=True)
-    date_applied = models.DateTimeField(auto_now_add=True)
+    position = models.ForeignKey(Position, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    status = models.CharField(
+        max_length=1,
+        choices=REQUEST_STATUS,
+        default="P",
+        blank=True,
+        null=True
+    )
+    date_applied = models.DateTimeField(auto_now_add=True,null=True)
     # متنی که دانشجو در ریکوئست می‌نویسد
     cover_letter = models.TextField()
