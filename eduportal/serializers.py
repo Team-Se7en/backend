@@ -5,9 +5,29 @@ from eduportal.models import Position
 from rest_framework import serializers
 
 from .models import *
-
+from .utils.views import get_user_type
 
 # User Serializers -------------------------------------------------------------
+
+
+class SimpleProfessorSerializer(
+    serializers.ModelSerializer,
+):
+    class Meta:
+        model = Professor
+        fields = "__all__"
+
+
+class SimpleStudentSerializer(
+    serializers.ModelSerializer,
+):
+    status = serializers.CharField(source="get_status_display")
+    major = serializers.CharField(source="get_major_display")
+    gender = serializers.CharField(source="get_gender_display")
+
+    class Meta:
+        model = Student
+        fields = "__all__"
 
 
 class SimpleUserSerializer(
@@ -20,6 +40,36 @@ class SimpleUserSerializer(
             "first_name",
             "last_name",
         ]
+
+
+class UserDetailSerializer(
+    serializers.ModelSerializer,
+):
+    user_type = serializers.SerializerMethodField("get_user_type")
+    professor = SimpleProfessorSerializer()
+    student = SimpleStudentSerializer()
+
+    class Meta:
+        model = apps.get_model(settings.AUTH_USER_MODEL)
+        exclude = [
+            "password",
+            "last_login",
+            "is_superuser",
+            "is_staff",
+            "is_active",
+            "is_student",
+            "groups",
+            "user_permissions",
+        ]
+
+    def get_fields(self):
+        fields = super().get_fields()
+        for field_name, field in fields.items():
+            field.allow_null = True
+        return fields
+
+    def get_user_type(self, user):
+        return get_user_type(self.context["request"])
 
 
 # Student Serializers ----------------------------------------------------------
@@ -134,7 +184,7 @@ class BasePositionSerializer(
         slug_field="label", many=True, queryset=Tag.objects.all()
     )
 
-    def get_status(self, pos: Position):
+    def get_status(self, pos: Position) -> str:
         (OPEN, CLOSED) = ("Open", "Closed")
         if pos.capacity <= pos.filled:
             return CLOSED
