@@ -14,6 +14,17 @@ from .serializers import *
 from .utils.views import *
 
 
+# User Views -------------------------------------------------------------------
+
+
+class UserInfoViewSet(GenericViewSet):
+    @action(detail=False, methods=["get"])
+    def userinfo(self, request):
+        user = request.user
+        serializer = UserDetailSerializer(user, context={"request": self.request})
+        return Response(serializer.data)
+
+
 # Student Views ----------------------------------------------------------------
 
 
@@ -226,7 +237,7 @@ class RequestViewSet(
         #     student__user__id=student_id
         # )
         # return req
-        return Request.objects.filter(student__id = self.request.user.id)
+        return Request.objects.filter(student__id=self.request.user.id)
 
     def get_serializer_class(self):
         return StudentRequestSerializer

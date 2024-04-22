@@ -11,8 +11,8 @@ router.register("student-profile", views.StudentProfileViewSet, "student_profile
 router.register("professors", views.ProfessorViewSet)
 router.register("positions", views.PositionViewSet, basename="positions")
 router.register("tags", views.TagListViewSet)
-router.register("requests",views.RequestViewSet,basename="request")
-
+router.register("requests", views.RequestViewSet, basename="request")
+router.register("", views.UserInfoViewSet, basename="userinfo")
 
 urlpatterns = []
 urlpatterns += router.urls
