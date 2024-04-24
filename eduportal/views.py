@@ -223,35 +223,44 @@ class PositionViewSet(ModelViewSet):
 # Request Views ----------------------------------------------------------------
 
 
-class RequestViewSet(
-    CreateModelMixin,
-    RetrieveModelMixin,
-    DestroyModelMixin,
-    GenericViewSet,
-):
-    permission_classes = [IsAuthenticated]
+class RequestViewSet(ModelViewSet):
     http_method_names = ["post", "get", "patch", "delete"]
 
     def get_queryset(self):
-        # position_id = self.get_object().position.id
-        # student_id = self.get_object().student.user.id
-        # req = Request.objects.filter(position__id=position_id).filter(
-        #     student__user__id=student_id
-        # )
-        # return req
-        return Request.objects.filter(student__id=self.request.user.id)
-
+        return Request.objects.all()
+    
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsAuthenticated(),IsStudent()]
+        return [IsAuthenticated()]
+    
     def get_serializer_class(self):
-        return StudentRequestSerializer
+        if self.action == "create":
+            return StudentCreateRequestSerializer
+        return StudentCreateRequestSerializer
+
 
     def create(self, request, *args, **kwargs):
-        serializer = StudentRequestSerializer(
+        student = Student.objects\
+            .select_related('user')\
+                .get(user__id = request.user.id)
+        request_flag = student.request_set\
+            .filter(position__id = request.data.get('position_id'))\
+            .exists()    
+        if request_flag:
+            return Response("Request already exists",status=status.HTTP_400_BAD_REQUEST)
+        serializer = StudentCreateRequestSerializer(
             data=request.data,
             context={
-                "student_id": self.request.user.student.id,
+                "student_id":student.id,
             },
         )
         serializer.is_valid(raise_exception=True)
         position = serializer.save()
-        serializer = StudentRequestSerializer(position)
+        serializer = StudentCreateRequestSerializer(position)
         return Response(serializer.data)
+
+
+class AdmissionViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = AdmissionSerializer
+    queryset = Request.objects.filter(status="P").all()
