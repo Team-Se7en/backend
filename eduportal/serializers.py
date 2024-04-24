@@ -257,6 +257,11 @@ class OwnerPositionListSerializer(
             "description",
         ]
 
+class AnonymousPositionDetailSerializer(
+    BasePositionDetailSerializer,
+):
+    pass
+
 
 class StudentPositionDetailSerializer(
     StudentStatusMixin,

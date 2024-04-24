@@ -147,6 +147,8 @@ class PositionViewSet(ModelViewSet):
                 return None
             case "retrieve":
                 match user_type:
+                    case "Anonymous":
+                        return AnonymousPositionDetailSerializer
                     case "Student":
                         return StudentPositionDetailSerializer
                     case "Professor":
