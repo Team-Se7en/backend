@@ -1,6 +1,7 @@
-from django.contrib import admin
 from django.conf import settings
+from django.contrib import admin
 from django.db import models
+
 from .majors import *
 
 # Create your models here.
@@ -13,9 +14,7 @@ class Student(models.Model):
         ("R", "Rather not to say"),
     ]
     STATUS = [("A", "Active"), ("I", "Inactive"), ("G", "Graduated")]
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="user_profile"
-    )
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     university_name = models.CharField(max_length=255, null=True)
     ssn = models.IntegerField(null=True)
     gender = models.CharField(max_length=1, choices=GENDER, null=True)
@@ -69,6 +68,7 @@ class Position(models.Model):
 
     fee = models.FloatField()
 
+
 class Request(models.Model):
     REQUEST_STATUS = [
         ("P", "Pending"),
@@ -78,12 +78,8 @@ class Request(models.Model):
     position = models.ForeignKey(Position, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     status = models.CharField(
-        max_length=1,
-        choices=REQUEST_STATUS,
-        default="P",
-        blank=True,
-        null=True
+        max_length=1, choices=REQUEST_STATUS, default="P", blank=True, null=True
     )
-    date_applied = models.DateTimeField(auto_now_add=True,null=True)
+    date_applied = models.DateTimeField(auto_now_add=True, null=True)
     # متنی که دانشجو در ریکوئست می‌نویسد
     cover_letter = models.TextField()

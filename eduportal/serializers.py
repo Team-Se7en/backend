@@ -1,13 +1,38 @@
-from django.conf import settings
 from django.apps import apps
-from .models import *
+from django.conf import settings
+from django.utils import timezone
+from eduportal.models import Position
 from rest_framework import serializers
 
+from .models import *
+from .utils.views import get_user_type
 
 # User Serializers -------------------------------------------------------------
 
 
-class SimpleUserSerializer(serializers.ModelSerializer):
+class SimpleProfessorSerializer(
+    serializers.ModelSerializer,
+):
+    class Meta:
+        model = Professor
+        fields = "__all__"
+
+
+class SimpleStudentSerializer(
+    serializers.ModelSerializer,
+):
+    status = serializers.CharField(source="get_status_display")
+    major = serializers.CharField(source="get_major_display")
+    gender = serializers.CharField(source="get_gender_display")
+
+    class Meta:
+        model = Student
+        fields = "__all__"
+
+
+class SimpleUserSerializer(
+    serializers.ModelSerializer,
+):
     class Meta:
         model = apps.get_model(settings.AUTH_USER_MODEL)
         fields = [
@@ -15,6 +40,36 @@ class SimpleUserSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
         ]
+
+
+class UserDetailSerializer(
+    serializers.ModelSerializer,
+):
+    user_type = serializers.SerializerMethodField("get_user_type")
+    professor = SimpleProfessorSerializer()
+    student = SimpleStudentSerializer()
+
+    class Meta:
+        model = apps.get_model(settings.AUTH_USER_MODEL)
+        exclude = [
+            "password",
+            "last_login",
+            "is_superuser",
+            "is_staff",
+            "is_active",
+            "is_student",
+            "groups",
+            "user_permissions",
+        ]
+
+    def get_fields(self):
+        fields = super().get_fields()
+        for field_name, field in fields.items():
+            field.allow_null = True
+        return fields
+
+    def get_user_type(self, user):
+        return get_user_type(self.context["request"])
 
 
 # Student Serializers ----------------------------------------------------------
@@ -44,13 +99,13 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
         # fields need to be changed
         fields = [
             "university_name",
-            "user_profile",
+            "student",
             "user",
             "ssn",
         ]
 
     user = SimpleUserSerializer()
-    user_profile = serializers.SerializerMethodField(method_name="username")
+    student = serializers.SerializerMethodField(method_name="username")
 
     def username(self, student: Student):
         return student.user.id
@@ -76,7 +131,9 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
 # Professor Serializers --------------------------------------------------------
 
 
-class ProfessorSerializer(serializers.ModelSerializer):
+class ProfessorSerializer(
+    serializers.ModelSerializer,
+):
     user = SimpleUserSerializer()
 
     class Meta:
@@ -110,18 +167,35 @@ class ProfessorSerializer(serializers.ModelSerializer):
 # Position Serializers ---------------------------------------------------------
 
 
-class ReadTagSerializer(serializers.ModelSerializer):
+class ReadTagSerializer(
+    serializers.ModelSerializer,
+):
     class Meta:
         model = Tag
         fields = ["label"]
 
 
-class BasePositionListSerializer(serializers.ModelSerializer):
+class BasePositionSerializer(
+    serializers.ModelSerializer,
+):
+    status = serializers.SerializerMethodField("get_status")
     professor = ProfessorSerializer()
     tags = serializers.SlugRelatedField(
         slug_field="label", many=True, queryset=Tag.objects.all()
     )
 
+    def get_status(self, pos: Position) -> str:
+        (OPEN, CLOSED) = ("Open", "Closed")
+        if pos.capacity <= pos.filled:
+            return CLOSED
+        if pos.deadline < timezone.now().date():
+            return CLOSED
+        return OPEN
+
+
+class BasePositionListSerializer(
+    BasePositionSerializer,
+):
     class Meta:
         model = Position
         exclude = [
@@ -132,68 +206,103 @@ class BasePositionListSerializer(serializers.ModelSerializer):
         ]
 
 
-class AnonymousPositionListSerializer(BasePositionListSerializer):
-    pass
-
-
-class StudentPositionListSerializer(BasePositionListSerializer):
-    remaining = serializers.SerializerMethodField("get_remaining")
-
-    def get_remaining(self, pos: Position):
-        return pos.capacity - pos.filled
-
-
-class ProfessorPositionListSerializer(BasePositionListSerializer):
-    pass
-
-
-class OwnerPositionListSerializer(BasePositionListSerializer):
-    class Meta(BasePositionListSerializer.Meta):
-        exclude = ["description"]
-
-
-class BasePositionDetailSerializer(serializers.ModelSerializer):
-    professor = ProfessorSerializer()
-    tags = serializers.SlugRelatedField(
-        slug_field="label", many=True, queryset=Tag.objects.all()
-    )
-
+class BasePositionDetailSerializer(
+    BasePositionSerializer,
+):
     class Meta:
         model = Position
-        exclude = ["capacity", "filled", "request_count"]
+        exclude = [
+            "capacity",
+            "filled",
+            "request_count",
+        ]
 
 
-class StudentPositionDetailSerializer(BasePositionDetailSerializer):
-    remaining = serializers.SerializerMethodField("get_remaining")
-
+class StudentStatusMixin:
     def get_remaining(self, pos: Position):
         return pos.capacity - pos.filled
 
+    def get_status(self, pos: Position):
+        my_requests = getattr(pos, "my_request", [])
+        if my_requests:
+            my_req = my_requests[0]
+            return my_req.get_status_display()
+        return super().get_status(pos)
 
-class ProfessorPositionDetailSerializer(BasePositionDetailSerializer):
+
+class AnonymousPositionListSerializer(
+    BasePositionListSerializer,
+):
     pass
 
 
-class OwnerPositionDetailSerializer(BasePositionDetailSerializer):
+class StudentPositionListSerializer(
+    StudentStatusMixin,
+    BasePositionListSerializer,
+):
+    remaining = serializers.SerializerMethodField("get_remaining")
+
+
+class ProfessorPositionListSerializer(
+    BasePositionListSerializer,
+):
+    pass
+
+
+class OwnerPositionListSerializer(
+    BasePositionListSerializer,
+):
+    class Meta(BasePositionListSerializer.Meta):
+        exclude = [
+            "description",
+        ]
+
+class AnonymousPositionDetailSerializer(
+    BasePositionDetailSerializer,
+):
+    pass
+
+
+class StudentPositionDetailSerializer(
+    StudentStatusMixin,
+    BasePositionDetailSerializer,
+):
+    remaining = serializers.SerializerMethodField("get_remaining")
+
+
+class ProfessorPositionDetailSerializer(
+    BasePositionDetailSerializer,
+):
+    pass
+
+
+class OwnerPositionDetailSerializer(
+    BasePositionDetailSerializer,
+):
     class Meta:
         model = Position
         fields = "__all__"
 
 
-class PositionUpdateSerializer(serializers.ModelSerializer):
+class PositionUpdateSerializer(
+    serializers.ModelSerializer,
+):
     class Meta:
         model = Position
-        exclude = (
+        exclude = [
             "professor",
             "request_count",
             "filled",
-        )
+        ]
 
     def create(self, validated_data):
         validated_data["professor_id"] = self.context["professor_id"]
         return super().create(validated_data)
 
+
 # Request Serializers ----------------------------------------------------------
+
+
 
 
 class StudentCreateRequestSerializer(serializers.ModelSerializer):

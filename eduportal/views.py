@@ -1,22 +1,28 @@
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from djoser.permissions import CurrentUserOrAdmin
 from pprint import pprint
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import get_object_or_404
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.generics import ListAPIView
 from rest_framework.mixins import *
 from rest_framework.permissions import *
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 
 from .models import *
-from .serializers import *
 from .permissions import *
+from .serializers import *
 from .utils.views import *
+
+
+# User Views -------------------------------------------------------------------
+
+
+class UserInfoViewSet(GenericViewSet):
+    @action(detail=False, methods=["get"])
+    def userinfo(self, request):
+        user = request.user
+        serializer = UserDetailSerializer(user, context={"request": self.request})
+        return Response(serializer.data)
 
 
 # Student Views ----------------------------------------------------------------
@@ -129,44 +135,68 @@ class PositionViewSet(ModelViewSet):
         action = self.action
         user = self.request.user
         user_type = get_user_type(self.request)
-        if action == "list":
-            if user_type == "Anonymous":
-                return AnonymousPositionListSerializer
-            if user_type == "Student":
-                return StudentPositionListSerializer
-            if user_type == "Professor":
-                return ProfessorPositionListSerializer
-            return None
-        if action == "retrieve":
-            if self.get_object().professor.user.id == user.id:
-                return OwnerPositionDetailSerializer
-            if user_type == "Student":
-                return StudentPositionDetailSerializer
-            if user_type == "Professor":
-                return ProfessorPositionDetailSerializer
-            return None
-        if action in ["create", "update", "partial_update"]:
-            return PositionUpdateSerializer
-        return None
+        match action:
+            case "list":
+                match user_type:
+                    case "Anonymous":
+                        return AnonymousPositionListSerializer
+                    case "Student":
+                        return StudentPositionListSerializer
+                    case "Professor":
+                        return ProfessorPositionListSerializer
+                return None
+            case "retrieve":
+                match user_type:
+                    case "Anonymous":
+                        return AnonymousPositionDetailSerializer
+                    case "Student":
+                        return StudentPositionDetailSerializer
+                    case "Professor":
+                        if self.get_object().professor.user == user:
+                            return OwnerPositionDetailSerializer
+                        return ProfessorPositionDetailSerializer
+                return None
+            case "create" | "update" | "partial_update":
+                return PositionUpdateSerializer
+            case _:
+                return None
 
     def get_queryset(self):
-        if self.action == "list":
-            user = self.request.user
-            qs = Position.objects
-            if user.is_authenticated:
-                qs = qs.exclude(professor__user__id=user.id)
+        user = self.request.user
+        user_type = get_user_type(self.request)
 
-            return (
-                qs.select_related("professor", "professor__user")
-                .prefetch_related("tags")
-                .all()
+        queryset = Position.objects.select_related("professor", "professor__user")
+
+        if self.action == "list":
+            queryset = queryset.exclude(professor__user__id=user.id)
+
+        queryset = queryset.prefetch_related("tags")
+
+        if user_type == "Student":
+            # Prefetch the Request objects for the current user
+            requests_for_user = Request.objects.filter(student__user=user)
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "request_set",
+                    queryset=requests_for_user,
+                    to_attr="my_request",
+                )
             )
-        else:
-            return (
-                Position.objects.select_related("professor", "professor__user")
-                .prefetch_related("tags")
-                .all()
-            )
+
+        queryset = queryset.all()
+
+        return queryset
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+
+        user = self.request.user
+        user_type = get_user_type(self.request)
+
+        if user_type == "Student":
+            context["student_id"] = user.student.id
+
+        return context
 
     def get_permissions(self):
         if self.action == "list":
