@@ -195,28 +195,22 @@ class PositionUpdateSerializer(serializers.ModelSerializer):
 
 # Request Serializers ----------------------------------------------------------
 
-class StudentRequestSerializer(serializers.ModelSerializer):
+
+class StudentCreateRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Request
         fields = (
-            "status",
-            "position",
-            "date_applied",
-            "cover_letter"
+            "position_id",
+            "cover_letter",
         )
 
+    position_id = serializers.IntegerField()
+
     def create(self, validated_data):
-        # Extract the user from the request
-        user = self.context['request'].user
+        validated_data["student"] =Student.objects.get(pk =  self.context["student_id"])
+        validated_data["position"] = Position.objects.get(pk = validated_data["position_id"])
+        return super().create(validated_data)
 
-        # Get the student associated with the user
-        student = Student.objects.get(user=user)
-        validated_data['student'] = student
-
-        # Create the request
-        request = Request.objects.create(**validated_data)
-
-        return request
 
 class AdmissionSerializer(serializers.ModelSerializer):
     class Meta:

@@ -1,6 +1,5 @@
 from rest_framework.permissions import BasePermission
 
-
 class IsProfessor(BasePermission):
     def has_permission(self, request, view):
         return bool(
@@ -22,3 +21,7 @@ class IsPositionOwner(BasePermission):
 class AllowNone(BasePermission):
     def has_permission(self, request, view):
         return False
+
+class IsStudent(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user.is_student)
