@@ -99,13 +99,13 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
         # fields need to be changed
         fields = [
             "university_name",
-            "user_profile",
+            "student",
             "user",
             "ssn",
         ]
 
     user = SimpleUserSerializer()
-    user_profile = serializers.SerializerMethodField(method_name="username")
+    student = serializers.SerializerMethodField(method_name="username")
 
     def username(self, student: Student):
         return student.user.id

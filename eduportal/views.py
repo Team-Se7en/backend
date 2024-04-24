@@ -192,7 +192,7 @@ class PositionViewSet(ModelViewSet):
         user_type = get_user_type(self.request)
 
         if user_type == "Student":
-            context["student_id"] = user.user_profile.id
+            context["student_id"] = user.student.id
 
         return context
 
