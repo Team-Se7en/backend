@@ -114,6 +114,9 @@ class ProfessorViewSet(
         positions = Position.objects.filter(professor=professor).order_by(
             "-created_at"
         )[:5]
+        positions = positions.select_related(
+            "professor", "professor__user"
+        ).prefetch_related("tags")
         serializer = OwnerPositionListSerializer(positions, many=True)
         return Response(serializer.data)
 
