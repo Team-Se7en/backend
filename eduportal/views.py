@@ -18,8 +18,7 @@ from .utils.views import *
 
 
 class UserInfoViewSet(GenericViewSet):
-    @action(detail=False, methods=["get"])
-    def userinfo(self, request):
+    def list(self, request):
         user = request.user
         serializer = UserDetailSerializer(user, context={"request": self.request})
         return Response(serializer.data)
