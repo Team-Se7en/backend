@@ -79,7 +79,7 @@ class ProfessorViewSet(
     GenericViewSet,
 ):
     http_method_names = ["get", "patch"]
-    queryset = Professor.objects.all()
+    queryset = Professor.objects.select_related("user").all()
     serializer_class = ProfessorSerializer
 
     @action(
