@@ -12,7 +12,7 @@ class IsProfessor(BasePermission):
 
 class IsPositionOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
-        return bool(request.user.professor.id == obj.position.professor.id)
+        return bool(request.user.professor.id == obj.professor.id)
 
 
 class AllowNone(BasePermission):
@@ -23,6 +23,7 @@ class AllowNone(BasePermission):
 class IsStudent(BasePermission):
     def has_permission(self, request, view):
         return bool(request.user.is_student)
+
 
 class IsRequestOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
