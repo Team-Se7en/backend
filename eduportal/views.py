@@ -204,8 +204,8 @@ class PositionViewSet(ModelViewSet):
             return [AllowAny()]
         if self.action == "create":
             return [IsProfessor()]
-        if self.action in ["update" or "partial_update", "destroy"]:
-            return [IsPositionOwner()]
+        if self.action in ["update", "partial_update", "destroy"]:
+            return [IsProfessor(), IsPositionOwner()]
         else:
             return [AllowNone()]
 

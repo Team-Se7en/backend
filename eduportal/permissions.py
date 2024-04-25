@@ -3,7 +3,7 @@ from rest_framework.permissions import BasePermission
 
 class IsProfessor(BasePermission):
     def has_permission(self, request, view):
-        return bool(
+        return (
             request.user
             and request.user.is_authenticated
             and (not request.user.is_student)
@@ -12,11 +12,7 @@ class IsProfessor(BasePermission):
 
 class IsPositionOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.professor.id == obj.professor.id
-        )
+        return request.user.professor.id == obj.professor.id
 
 
 class AllowNone(BasePermission):
