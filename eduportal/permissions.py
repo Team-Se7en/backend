@@ -1,5 +1,6 @@
 from rest_framework.permissions import BasePermission
 
+
 class IsProfessor(BasePermission):
     def has_permission(self, request, view):
         return bool(
@@ -11,17 +12,21 @@ class IsProfessor(BasePermission):
 
 class IsPositionOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and (request.user.id == obj.professor.user.id)
-        )
+        return bool(request.user.professor.id == obj.position.professor.id)
 
 
 class AllowNone(BasePermission):
     def has_permission(self, request, view):
         return False
 
+
 class IsStudent(BasePermission):
     def has_permission(self, request, view):
         return bool(request.user.is_student)
+
+class IsRequestOwner(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.user.is_student:
+            return bool(request.user.student.id == obj.student.id)
+        else:
+            return bool(request.user.professor.id == obj.position.professor.id)

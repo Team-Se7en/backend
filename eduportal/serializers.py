@@ -324,15 +324,13 @@ class StudentCreateRequestSerializer(serializers.ModelSerializer):
 class RequestListSeralizer(serializers.ModelSerializer):
     class Meta:
         model = Request
-        exclude = ["cover_letter"]
+        exclude = ["cover_letter","student"]
 
 class RequestUpdateSeralizer(serializers.ModelSerializer):
     class Meta:
         model = Request
         fields  = (
-            "position",
             "status",
-            "id"
         )
 
 class StudentRequestDetailSerializer(serializers.ModelSerializer):

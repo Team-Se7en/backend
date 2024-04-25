@@ -234,31 +234,28 @@ class RequestViewSet(ModelViewSet):
             return [IsAuthenticated(), IsStudent()]
         if self.action == "list":
             return [IsAuthenticated()]
-        if self.action == "update":
+        if self.action in ["partial_update" or "update"]:
             return [IsAuthenticated(), IsProfessor(),IsPositionOwner()]
         if self.action == "destroy":
             return [AllowNone()]
         if self.action == "retrieve":
-            return [IsAuthenticated()]
-        return []
+            return [IsAuthenticated(),IsRequestOwner()]
+        return [AllowNone()]
 
     def get_serializer_class(self):
         if self.action == "create":
             return StudentCreateRequestSerializer
-        if self.action == "update":
+        if self.action in ["update" , "partial_update"]:
             return RequestUpdateSeralizer
         if self.action == "retrieve":
             if self.request.user.is_student:
                 return StudentRequestDetailSerializer
             else:
                 return ProfessorRequestDetailSerializer
+        if self.action == "list":
+            return RequestListSeralizer
         return RequestListSeralizer
 
-    def partial_update(self, request, *args, **kwargs):
-        request_object =get_object_or_404(Request,pk=kwargs["pk"])
-        if request_object.position.professor.user.id != request.user.id:
-            return Response("Access denied", status=status.HTTP_403_FORBIDDEN)
-        return super().partial_update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         request_object =get_object_or_404(Request,pk=kwargs["pk"])
@@ -270,18 +267,18 @@ class RequestViewSet(ModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = Request.objects
         if request.user.is_student:
-            queryset = queryset.select_related("student").filter(
-                student__user__id=request.user.id
+            queryset = queryset.filter(
+                student__id=request.user.student.id
             )
         else:
             queryset = queryset.select_related("position").filter(
-                position__professor__user__id=request.user.id
+                position__professor__id=request.user.professor.id
             )
         seializer = RequestListSeralizer(queryset, many=True)
         return Response(seializer.data)
 
     def create(self, request, *args, **kwargs):
-        student = Student.objects.select_related("user").get(user__id=request.user.id)
+        student = Student.objects.get(pk=request.user.student.id)
         sent_requests = student.request_set.filter(
             position__id=request.data.get("position_id")
         )
@@ -292,6 +289,15 @@ class RequestViewSet(ModelViewSet):
             return Response(
                 "Request already exists", status=status.HTTP_400_BAD_REQUEST
             )
+        position = Position\
+            .objects\
+                .get(pk = request.data.get("position_id"))
+        if position.capacity == 0:
+            Response("This position is completed.",status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        if position.deadline < timezone.now().date():
+            return Response("The deadline is finished.",
+                            status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
         serializer = StudentCreateRequestSerializer(
             data=request.data,
             context={
