@@ -228,31 +228,74 @@ class RequestViewSet(ModelViewSet):
 
     def get_queryset(self):
         return Request.objects.all()
-    
+
     def get_permissions(self):
         if self.action == "create":
-            return [IsAuthenticated(),IsStudent()]
-        return [IsAuthenticated()]
-    
+            return [IsAuthenticated(), IsStudent()]
+        if self.action == "list":
+            return [IsAuthenticated()]
+        if self.action == "update":
+            return [IsAuthenticated(), IsProfessor(),IsPositionOwner()]
+        if self.action == "destroy":
+            return [AllowNone()]
+        if self.action == "retrieve":
+            return [IsAuthenticated()]
+        return []
+
     def get_serializer_class(self):
         if self.action == "create":
             return StudentCreateRequestSerializer
-        return StudentCreateRequestSerializer
+        if self.action == "update":
+            return RequestUpdateSeralizer
+        if self.action == "retrieve":
+            if self.request.user.is_student:
+                return StudentRequestDetailSerializer
+            else:
+                return ProfessorRequestDetailSerializer
+        return RequestListSeralizer
 
+    def partial_update(self, request, *args, **kwargs):
+        request_object =get_object_or_404(Request,pk=kwargs["pk"])
+        if request_object.position.professor.user.id != request.user.id:
+            return Response("Access denied", status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        request_object =get_object_or_404(Request,pk=kwargs["pk"])
+        if request_object.student.user.id == request.user.id:
+            return super().destroy(request, *args, **kwargs)
+        else:
+            return Response("Access denied", status=status.HTTP_403_FORBIDDEN)
+
+    def list(self, request, *args, **kwargs):
+        queryset = Request.objects
+        if request.user.is_student:
+            queryset = queryset.select_related("student").filter(
+                student__user__id=request.user.id
+            )
+        else:
+            queryset = queryset.select_related("position").filter(
+                position__professor__user__id=request.user.id
+            )
+        seializer = RequestListSeralizer(queryset, many=True)
+        return Response(seializer.data)
 
     def create(self, request, *args, **kwargs):
-        student = Student.objects\
-            .select_related('user')\
-                .get(user__id = request.user.id)
-        request_flag = student.request_set\
-            .filter(position__id = request.data.get('position_id'))\
-            .exists()    
-        if request_flag:
-            return Response("Request already exists",status=status.HTTP_400_BAD_REQUEST)
+        student = Student.objects.select_related("user").get(user__id=request.user.id)
+        sent_requests = student.request_set.filter(
+            position__id=request.data.get("position_id")
+        )
+        if sent_requests.exists():
+            if sent_requests.filter(status = "R").exists():
+                return Response("You are not allowed to request anymore",
+                                status= status.HTTP_403_FORBIDDEN)
+            return Response(
+                "Request already exists", status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = StudentCreateRequestSerializer(
             data=request.data,
             context={
-                "student_id":student.id,
+                "student_id": student.id,
             },
         )
         serializer.is_valid(raise_exception=True)

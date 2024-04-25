@@ -1,6 +1,7 @@
 from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from eduportal.models import Position
 from rest_framework import serializers
 
@@ -257,6 +258,7 @@ class OwnerPositionListSerializer(
             "description",
         ]
 
+
 class AnonymousPositionDetailSerializer(
     BasePositionDetailSerializer,
 ):
@@ -303,8 +305,6 @@ class PositionUpdateSerializer(
 # Request Serializers ----------------------------------------------------------
 
 
-
-
 class StudentCreateRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Request
@@ -316,10 +316,44 @@ class StudentCreateRequestSerializer(serializers.ModelSerializer):
     position_id = serializers.IntegerField()
 
     def create(self, validated_data):
-        validated_data["student"] =Student.objects.get(pk =  self.context["student_id"])
-        validated_data["position"] = Position.objects.get(pk = validated_data["position_id"])
+        validated_data["student"] = Student.objects.get(pk=self.context["student_id"])
+        validated_data["position"] = get_object_or_404(Position,pk = validated_data["position_id"])
         return super().create(validated_data)
 
+
+class RequestListSeralizer(serializers.ModelSerializer):
+    class Meta:
+        model = Request
+        exclude = ["cover_letter"]
+
+class RequestUpdateSeralizer(serializers.ModelSerializer):
+    class Meta:
+        model = Request
+        fields  = (
+            "position",
+            "status",
+            "id"
+        )
+
+class StudentRequestDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Request
+        fields = (
+            "status",
+            "position",
+            "date_applied",
+            "cover_letter"
+        )
+    
+class ProfessorRequestDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Request
+        fields = (
+            "status",
+            "position",
+            "date_applied",
+            "cover_letter"
+        )
 
 class AdmissionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -329,4 +363,5 @@ class AdmissionSerializer(serializers.ModelSerializer):
             "student",
             "status",
         )
+
     student = StudentGetListSerializer()
