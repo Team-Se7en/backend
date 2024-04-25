@@ -233,7 +233,7 @@ class RequestViewSet(ModelViewSet):
             return [IsAuthenticated(), IsStudent()]
         if self.action == "list":
             return [IsAuthenticated()]
-        if self.action in ["partial_update" or "update"]:
+        if self.action in ["partial_update", "update"]:
             return [IsAuthenticated(), IsProfessor(), IsPositionOwner()]
         if self.action == "destroy":
             return [AllowNone()]
