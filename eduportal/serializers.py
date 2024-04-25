@@ -317,41 +317,43 @@ class StudentCreateRequestSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["student"] = Student.objects.get(pk=self.context["student_id"])
-        validated_data["position"] = get_object_or_404(Position,pk = validated_data["position_id"])
+        validated_data["position"] = get_object_or_404(
+            Position, pk=validated_data["position_id"]
+        )
         return super().create(validated_data)
 
 
 class RequestListSeralizer(serializers.ModelSerializer):
     class Meta:
         model = Request
-        exclude = ["cover_letter","student"]
+        exclude = [
+            "cover_letter",
+            "student",
+            "share_with_others",
+        ]
 
-class RequestUpdateSeralizer(serializers.ModelSerializer):
+
+class ProfessorRequestUpdateSeralizer(serializers.ModelSerializer):
     class Meta:
         model = Request
-        fields  = (
-            "status",
-        )
+        fields = ("status",)
+
+class StudentRequestUpdateSeralizer(serializers.ModelSerializer):
+    class Meta:
+        model = Request
+        fields = ("share_with_others",)
 
 class StudentRequestDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Request
-        fields = (
-            "status",
-            "position",
-            "date_applied",
-            "cover_letter"
-        )
-    
+        fields = ("status", "position", "date_applied", "cover_letter")
+
+
 class ProfessorRequestDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Request
-        fields = (
-            "status",
-            "position",
-            "date_applied",
-            "cover_letter"
-        )
+        fields = ("status", "position", "date_applied", "cover_letter")
+
 
 class AdmissionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -363,3 +365,4 @@ class AdmissionSerializer(serializers.ModelSerializer):
         )
 
     student = StudentGetListSerializer()
+

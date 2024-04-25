@@ -246,7 +246,7 @@ class RequestViewSet(ModelViewSet):
         if self.action == "create":
             return StudentCreateRequestSerializer
         if self.action in ["update" , "partial_update"]:
-            return RequestUpdateSeralizer
+            return ProfessorRequestUpdateSeralizer
         if self.action == "retrieve":
             if self.request.user.is_student:
                 return StudentRequestDetailSerializer
@@ -310,6 +310,32 @@ class RequestViewSet(ModelViewSet):
         return Response(serializer.data)
 
 
-class AdmissionViewSet(ListModelMixin, GenericViewSet):
-    serializer_class = AdmissionSerializer
-    queryset = Request.objects.filter(status="P").all()
+class AdmissionViewSet(UpdateModelMixin,ListModelMixin, GenericViewSet):
+    http_method_names = ['get','patch']
+
+    def get_queryset(self):
+        if self.action == "list":
+            return Request.objects.filter(status="A",share_with_others= True).all()
+        if self.action == "partial_update":
+            return Request.objects.filter(status = "A").all()
+        return None
+    
+    def get_permissions(self):
+        if self.action == "list":
+            return []
+        if self.action == "partial_update":
+            return [IsAuthenticated(),IsStudent(),IsRequestOwner()]
+        return [AllowAny()]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return AdmissionSerializer
+        elif self.action == "partial_update":
+            return StudentRequestUpdateSeralizer
+
+    def update(self, request, *args, **kwargs):
+        request_object = get_object_or_404(Request,pk =kwargs['pk'])
+        if request_object.status != "A":
+            return Response("Invalid admission.",status=status.HTTP_400_BAD_REQUEST)
+        request_object.share_with_others = True
+        return super().update(request, *args, **kwargs)

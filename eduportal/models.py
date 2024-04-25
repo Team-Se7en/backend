@@ -83,3 +83,4 @@ class Request(models.Model):
     date_applied = models.DateTimeField(auto_now_add=True, null=True)
     # متنی که دانشجو در ریکوئست می‌نویسد
     cover_letter = models.TextField()
+    share_with_others = models.BooleanField(default=False)
