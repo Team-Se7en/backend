@@ -237,7 +237,7 @@ class RequestViewSet(ModelViewSet):
         if self.action == "list":
             return [IsAuthenticated()]
         if self.action in ["partial_update", "update"]:
-            return [IsAuthenticated(), IsProfessor(), IsPositionOwner()]
+            return [IsAuthenticated(), IsProfessor(), IsRequestOwner()]
         if self.action == "destroy":
             return [AllowNone()]
         if self.action == "retrieve":
