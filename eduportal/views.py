@@ -202,7 +202,7 @@ class PositionViewSet(ModelViewSet):
         if self.action == "list":
             return [AllowAny()]
         if self.action == "retrieve":
-            return [IsAuthenticated()]
+            return [AllowAny()]
         if self.action == "create":
             return [IsProfessor()]
         if self.action in ["update" or "partial_update", "destroy"]:
@@ -235,17 +235,17 @@ class RequestViewSet(ModelViewSet):
         if self.action == "list":
             return [IsAuthenticated()]
         if self.action in ["partial_update" or "update"]:
-            return [IsAuthenticated(), IsProfessor(),IsPositionOwner()]
+            return [IsAuthenticated(), IsProfessor(), IsPositionOwner()]
         if self.action == "destroy":
             return [AllowNone()]
         if self.action == "retrieve":
-            return [IsAuthenticated(),IsRequestOwner()]
+            return [IsAuthenticated(), IsRequestOwner()]
         return [AllowNone()]
 
     def get_serializer_class(self):
         if self.action == "create":
             return StudentCreateRequestSerializer
-        if self.action in ["update" , "partial_update"]:
+        if self.action in ["update", "partial_update"]:
             return ProfessorRequestUpdateSeralizer
         if self.action == "retrieve":
             if self.request.user.is_student:
@@ -256,9 +256,8 @@ class RequestViewSet(ModelViewSet):
             return RequestListSeralizer
         return RequestListSeralizer
 
-
     def destroy(self, request, *args, **kwargs):
-        request_object =get_object_or_404(Request,pk=kwargs["pk"])
+        request_object = get_object_or_404(Request, pk=kwargs["pk"])
         if request_object.student.user.id == request.user.id:
             return super().destroy(request, *args, **kwargs)
         else:
@@ -267,9 +266,7 @@ class RequestViewSet(ModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = Request.objects
         if request.user.is_student:
-            queryset = queryset.filter(
-                student__id=request.user.student.id
-            )
+            queryset = queryset.filter(student__id=request.user.student.id)
         else:
             queryset = queryset.select_related("position").filter(
                 position__professor__id=request.user.professor.id
@@ -283,20 +280,23 @@ class RequestViewSet(ModelViewSet):
             position__id=request.data.get("position_id")
         )
         if sent_requests.exists():
-            if sent_requests.filter(status = "R").exists():
-                return Response("You are not allowed to request anymore",
-                                status= status.HTTP_403_FORBIDDEN)
+            if sent_requests.filter(status="R").exists():
+                return Response(
+                    "You are not allowed to request anymore",
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             return Response(
                 "Request already exists", status=status.HTTP_400_BAD_REQUEST
             )
-        position = Position\
-            .objects\
-                .get(pk = request.data.get("position_id"))
+        position = Position.objects.get(pk=request.data.get("position_id"))
         if position.capacity == 0:
-            Response("This position is completed.",status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            Response(
+                "This position is completed.", status=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
         if position.deadline < timezone.now().date():
-            return Response("The deadline is finished.",
-                            status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            return Response(
+                "The deadline is finished.", status=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
 
         serializer = StudentCreateRequestSerializer(
             data=request.data,
@@ -310,21 +310,21 @@ class RequestViewSet(ModelViewSet):
         return Response(serializer.data)
 
 
-class AdmissionViewSet(UpdateModelMixin,ListModelMixin, GenericViewSet):
-    http_method_names = ['get','patch']
+class AdmissionViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
+    http_method_names = ["get", "patch"]
 
     def get_queryset(self):
         if self.action == "list":
-            return Request.objects.filter(status="A",share_with_others= True).all()
+            return Request.objects.filter(status="A", share_with_others=True).all()
         if self.action == "partial_update":
-            return Request.objects.filter(status = "A").all()
+            return Request.objects.filter(status="A").all()
         return None
-    
+
     def get_permissions(self):
         if self.action == "list":
             return []
         if self.action == "partial_update":
-            return [IsAuthenticated(),IsStudent(),IsRequestOwner()]
+            return [IsAuthenticated(), IsStudent(), IsRequestOwner()]
         return [AllowAny()]
 
     def get_serializer_class(self):
@@ -334,8 +334,8 @@ class AdmissionViewSet(UpdateModelMixin,ListModelMixin, GenericViewSet):
             return StudentRequestUpdateSeralizer
 
     def update(self, request, *args, **kwargs):
-        request_object = get_object_or_404(Request,pk =kwargs['pk'])
+        request_object = get_object_or_404(Request, pk=kwargs["pk"])
         if request_object.status != "A":
-            return Response("Invalid admission.",status=status.HTTP_400_BAD_REQUEST)
+            return Response("Invalid admission.", status=status.HTTP_400_BAD_REQUEST)
         request_object.share_with_others = True
         return super().update(request, *args, **kwargs)
