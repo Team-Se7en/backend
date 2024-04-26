@@ -303,6 +303,16 @@ class PositionUpdateSerializer(
             "filled",
         ]
 
+    def validate(self, data):
+        errors = {}
+        if data["ends_at"] < data["starts_at"]:
+            errors["ends_at"] = "End date must be after start date."
+        if data["deadline"] < timezone.now().date():
+            errors["deadline"] = "Deadline must be after creation date."
+        if errors:
+            raise serializers.ValidationError(errors)
+        return data
+
     def create(self, validated_data):
         validated_data["professor_id"] = self.context["professor_id"]
         return super().create(validated_data)

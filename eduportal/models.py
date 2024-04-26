@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from .majors import *
 
@@ -64,7 +65,7 @@ class Position(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     deadline = models.DateField()
     starts_at = models.DateField()
-    duration = models.DurationField()
+    ends_at = models.DateField()
 
     fee = models.FloatField()
 
