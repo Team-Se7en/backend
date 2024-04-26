@@ -255,10 +255,17 @@ class ProfessorPositionListSerializer(
 class OwnerPositionListSerializer(
     BasePositionListSerializer,
 ):
+    professor = None
+    university_name = serializers.SerializerMethodField("get_university_name")
+
     class Meta(BasePositionListSerializer.Meta):
         exclude = [
             "description",
+            "professor",
         ]
+
+    def get_university_name(self, pos: Position):
+        return pos.professor.university
 
 
 class AnonymousPositionDetailSerializer(
@@ -284,14 +291,21 @@ class OwnerPositionDetailSerializer(
     BasePositionDetailSerializer,
 ):
     requests = serializers.SerializerMethodField("get_requests")
+    university = serializers.SerializerMethodField("get_university")
+    professor = None
 
     class Meta:
         model = Position
-        fields = "__all__"
+        exclude = [
+            "professor",
+        ]
 
     def get_requests(self, pos: Position):
         reqs = getattr(pos, "position_requests", [])
         return RequestListSeralizer(reqs, many=True).data
+
+    def get_university(self, pos: Position):
+        return pos.professor.university
 
 
 class PositionUpdateSerializer(
@@ -308,7 +322,9 @@ class PositionUpdateSerializer(
     def validate(self, data):
         errors = {}
         if data["position_end_date"] < data["position_start_date"]:
-            errors["position_end_date"] = "Position end date must be after position start date."
+            errors["position_end_date"] = (
+                "Position end date must be after position start date."
+            )
         if data["end_date"] < ["start_date"]:
             errors["end_date"] = "end date must be after start date."
         if errors:
