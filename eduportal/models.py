@@ -63,9 +63,11 @@ class Position(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    deadline = models.DateField()
-    starts_at = models.DateField()
-    ends_at = models.DateField()
+
+    start_date = models.DateField()
+    end_date = models.DateField()
+    position_start_date = models.DateField()
+    position_end_date = models.DateField()
 
     fee = models.FloatField()
 
