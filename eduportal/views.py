@@ -112,7 +112,7 @@ class ProfessorViewSet(
     def my_recent_positions(self, request):
         professor = get_object_or_404(Professor, user_id=request.user.id)
         positions = Position.objects.filter(professor=professor).order_by(
-            "-created_at"
+            "-start_date"
         )[:5]
         positions = positions.select_related(
             "professor", "professor__user"
@@ -307,7 +307,7 @@ class RequestViewSet(ModelViewSet):
             Response(
                 "This position is completed.", status=status.HTTP_405_METHOD_NOT_ALLOWED
             )
-        if position.deadline < timezone.now().date():
+        if position.end_date < timezone.now().date():
             return Response(
                 "The deadline is finished.", status=status.HTTP_405_METHOD_NOT_ALLOWED
             )

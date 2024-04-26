@@ -186,10 +186,12 @@ class BasePositionSerializer(
     )
 
     def get_status(self, pos: Position) -> str:
-        (OPEN, CLOSED) = ("Open", "Closed")
+        (OPEN, CLOSED, INACTIVE) = ("Open", "Closed", "Not Active")
+        if pos.start_date > timezone.now().date():
+            return INACTIVE
         if pos.capacity <= pos.filled:
             return CLOSED
-        if pos.deadline < timezone.now().date():
+        if pos.end_date < timezone.now().date():
             return CLOSED
         return OPEN
 
@@ -305,10 +307,10 @@ class PositionUpdateSerializer(
 
     def validate(self, data):
         errors = {}
-        if data["ends_at"] < data["starts_at"]:
-            errors["ends_at"] = "End date must be after start date."
-        if data["deadline"] < timezone.now().date():
-            errors["deadline"] = "Deadline must be after creation date."
+        if data["position_end_date"] < data["position_start_date"]:
+            errors["position_end_date"] = "Position end date must be after position start date."
+        if data["end_date"] < ["start_date"]:
+            errors["end_date"] = "end date must be after start date."
         if errors:
             raise serializers.ValidationError(errors)
         return data
