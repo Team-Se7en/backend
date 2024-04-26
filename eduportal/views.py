@@ -167,12 +167,24 @@ class PositionViewSet(ModelViewSet):
         user = self.request.user
         user_type = get_user_type(self.request)
 
-        queryset = Position.objects.select_related("professor", "professor__user")
+        queryset = Position.objects.select_related(
+            "professor", "professor__user"
+        ).prefetch_related("tags")
 
         if self.action == "list":
             queryset = queryset.exclude(professor__user__id=user.id)
-
-        queryset = queryset.prefetch_related("tags")
+        if self.action == "retrieve":
+            if user_type == "Professor":
+                requests_for_position = Request.objects.filter(
+                    position__professor__user=user
+                )
+                queryset = queryset.prefetch_related(
+                    Prefetch(
+                        "request_set",
+                        queryset=requests_for_position,
+                        to_attr="position_requests",
+                    )
+                )
 
         if user_type == "Student":
             # Prefetch the Request objects for the current user

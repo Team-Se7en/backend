@@ -281,9 +281,15 @@ class ProfessorPositionDetailSerializer(
 class OwnerPositionDetailSerializer(
     BasePositionDetailSerializer,
 ):
+    requests = serializers.SerializerMethodField("get_requests")
+
     class Meta:
         model = Position
         fields = "__all__"
+
+    def get_requests(self, pos: Position):
+        reqs = getattr(pos, "position_requests", [])
+        return RequestListSeralizer(reqs, many=True).data
 
 
 class PositionUpdateSerializer(
@@ -296,6 +302,16 @@ class PositionUpdateSerializer(
             "request_count",
             "filled",
         ]
+
+    def validate(self, data):
+        errors = {}
+        if data["ends_at"] < data["starts_at"]:
+            errors["ends_at"] = "End date must be after start date."
+        if data["deadline"] < timezone.now().date():
+            errors["deadline"] = "Deadline must be after creation date."
+        if errors:
+            raise serializers.ValidationError(errors)
+        return data
 
     def create(self, validated_data):
         validated_data["professor_id"] = self.context["professor_id"]
@@ -338,10 +354,12 @@ class ProfessorRequestUpdateSeralizer(serializers.ModelSerializer):
         model = Request
         fields = ("status",)
 
+
 class StudentRequestUpdateSeralizer(serializers.ModelSerializer):
     class Meta:
         model = Request
         fields = ("share_with_others",)
+
 
 class StudentRequestDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -365,4 +383,3 @@ class AdmissionSerializer(serializers.ModelSerializer):
         )
 
     student = StudentGetListSerializer()
-
