@@ -281,9 +281,15 @@ class ProfessorPositionDetailSerializer(
 class OwnerPositionDetailSerializer(
     BasePositionDetailSerializer,
 ):
+    requests = serializers.SerializerMethodField("get_requests")
+
     class Meta:
         model = Position
         fields = "__all__"
+
+    def get_requests(self, pos: Position):
+        reqs = getattr(pos, "position_requests", [])
+        return RequestListSeralizer(reqs, many=True).data
 
 
 class PositionUpdateSerializer(
@@ -338,10 +344,12 @@ class ProfessorRequestUpdateSeralizer(serializers.ModelSerializer):
         model = Request
         fields = ("status",)
 
+
 class StudentRequestUpdateSeralizer(serializers.ModelSerializer):
     class Meta:
         model = Request
         fields = ("share_with_others",)
+
 
 class StudentRequestDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -365,4 +373,3 @@ class AdmissionSerializer(serializers.ModelSerializer):
         )
 
     student = StudentGetListSerializer()
-
