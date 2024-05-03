@@ -16,6 +16,8 @@ router.register("admissions", views.AdmissionViewSet, basename="admission")
 router.register("userinfo", views.UserInfoViewSet, basename="userinfo")
 router.register("prof_own_position_filter",views.ProfessorOwnPositionFilteringViewSet,
                 basename="prof_own_position_filter")
+router.register("prof_other_position_filter",views.ProfessorOtherPositionFilteringViewSet,
+                basename="prof_other_position_filter")
 
 urlpatterns = []
 urlpatterns += router.urls
