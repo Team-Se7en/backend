@@ -476,11 +476,13 @@ class StudentPositionFilteringViewSet(ListModelMixin, GenericViewSet):
                 )
         return base_query
 
+
 # Request Filtering Views ------------------------------------------------------
 
-class StudentRequestFilteringViewSet(ListModelMixin,GenericViewSet):
+
+class StudentRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = RequestListSeralizer
-    permission_classes = [IsAuthenticated,IsStudent]
+    permission_classes = [IsAuthenticated, IsStudent, IsRequestOwner]
 
     def get_queryset(self):
         base_query = Request.objects.select_related("student").filter(
@@ -523,5 +525,32 @@ class StudentRequestFilteringViewSet(ListModelMixin,GenericViewSet):
                 status_word = "R"
             if status_word is None:
                 return Request.objects.none()
-            base_query = base_query.filter(status = status_word)
+            base_query = base_query.filter(status=status_word)
+        return base_query
+
+
+class ProfessorRequestFilteringViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = RequestListSeralizer
+    permission_classes = [IsAuthenticated, IsProfessor, IsRequestOwner]
+
+    def get_queryset(self):
+        base_query = Request.objects.select_related("position", "student").filter(
+            position__professor__id=self.request.user.professor.id
+        )
+        filter_options = self.request.query_params
+        status = filter_options.get("status")
+        major = filter_options.get("major")
+        if status is not None:
+            status_word = None
+            if status == "A":
+                status_word = "A"
+            elif status == "P":
+                status_word = "P"
+            elif status == "R":
+                status_word = "R"
+            if status_word is None:
+                return Request.objects.none()
+            base_query = base_query.filter(status=status_word)
+        if major is not None:
+            base_query = base_query.filter(student__major=major)
         return base_query
