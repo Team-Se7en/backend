@@ -381,8 +381,9 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
                     position_start_date__month__gte=5
                 ).filter(position_start_date__month__lt=10)
             elif term == "winter":
-                base_query = base_query.filter(position_start_date__month__gte=10)\
-                .filter(position_start_date__month__lte = 12)
+                base_query = base_query.filter(
+                    position_start_date__month__gte=10
+                ).filter(position_start_date__month__lte=12)
             elif term == "spring":
                 base_query = base_query.filter(
                     position_start_date__month__gte=1
@@ -392,6 +393,7 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
         if year is not None:
             base_query = base_query.filter(position_start_date__year=year)
         return base_query
+
 
 class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
@@ -416,8 +418,9 @@ class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
                     position_start_date__month__gte=5
                 ).filter(position_start_date__month__lt=10)
             elif term == "winter":
-                base_query = base_query.filter(position_start_date__month__gte=10)\
-                .filter(position_start_date__month__lte = 12)
+                base_query = base_query.filter(
+                    position_start_date__month__gte=10
+                ).filter(position_start_date__month__lte=12)
             elif term == "spring":
                 base_query = base_query.filter(
                     position_start_date__month__gte=1
@@ -428,3 +431,97 @@ class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
             base_query = base_query.filter(position_start_date__year=year)
         return base_query
 
+
+class StudentPositionFilteringViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = StudentPositionListSerializer
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def get_queryset(self):
+        base_query = Position.objects.all()
+        filter_options = self.request.query_params
+        min_fee = filter_options.get("min_fee")
+        max_fee = filter_options.get("max_fee")
+        term = filter_options.get("term")
+        year = filter_options.get("year")
+        is_filled = filter_options.get("is_filled")
+        if min_fee is not None:
+            base_query = base_query.filter(fee__gte=min_fee)
+        if max_fee is not None:
+            base_query = base_query.filter(fee__lte=max_fee)
+        if term is not None:
+            if term == "summer":
+                base_query = base_query.filter(
+                    position_start_date__month__gte=5
+                ).filter(position_start_date__month__lt=10)
+            elif term == "winter":
+                base_query = base_query.filter(
+                    position_start_date__month__gte=10
+                ).filter(position_start_date__month__lte=12)
+            elif term == "spring":
+                base_query = base_query.filter(
+                    position_start_date__month__gte=1
+                ).filter(position_start_date__month__lt=5)
+            else:
+                return Response("Invalid Term", status=status.HTTP_400_BAD_REQUEST)
+        if year is not None:
+            base_query = base_query.filter(position_start_date__year=year)
+        if is_filled is not None:
+            if is_filled == "Y":
+                base_query = base_query.filter(filled=1)
+            elif is_filled == "N":
+                base_query = base_query.filter(filled=0)
+            else:
+                return Response(
+                    "Invalid filled value", status=status.HTTP_400_BAD_REQUEST
+                )
+        return base_query
+
+# Request Filtering Views ------------------------------------------------------
+
+class StudentRequestFilteringViewSet(ListModelMixin,GenericViewSet):
+    serializer_class = RequestListSeralizer
+    permission_classes = [IsAuthenticated,IsStudent]
+
+    def get_queryset(self):
+        base_query = Request.objects.select_related("student").filter(
+            student__id=self.request.user.student.id
+        )
+        filter_options = self.request.query_params
+        min_fee = filter_options.get("min_fee")
+        max_fee = filter_options.get("max_fee")
+        term = filter_options.get("term")
+        year = filter_options.get("year")
+        status = filter_options.get("status")
+        if min_fee is not None:
+            base_query = base_query.filter(fee__gte=min_fee)
+        if max_fee is not None:
+            base_query = base_query.filter(fee__lte=max_fee)
+        if term is not None:
+            if term == "summer":
+                base_query = base_query.filter(
+                    position_start_date__month__gte=5
+                ).filter(position_start_date__month__lt=10)
+            elif term == "winter":
+                base_query = base_query.filter(
+                    position_start_date__month__gte=10
+                ).filter(position_start_date__month__lte=12)
+            elif term == "spring":
+                base_query = base_query.filter(
+                    position_start_date__month__gte=1
+                ).filter(position_start_date__month__lt=5)
+            else:
+                return Response("Invalid Term", status=status.HTTP_400_BAD_REQUEST)
+        if year is not None:
+            base_query = base_query.filter(position_start_date__year=year)
+        if status is not None:
+            status_word = None
+            if status == "A":
+                status_word = "A"
+            elif status == "P":
+                status_word = "P"
+            elif status == "R":
+                status_word = "R"
+            if status_word is None:
+                return Request.objects.none()
+            base_query = base_query.filter(status = status_word)
+        return base_query
