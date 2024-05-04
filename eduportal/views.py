@@ -1,8 +1,10 @@
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from pprint import pprint
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.mixins import *
 from rest_framework.permissions import *
 from rest_framework.response import Response
@@ -417,11 +419,17 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
 class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
+    filter_backends = [OrderingFilter]
+    ordering_fields = ["fee", "position_start_date"]
 
     def get_queryset(self):
         base_query = Position.objects.select_related("professor").exclude(
             professor__id=self.request.user.professor.id
         )
+        if self.request.query_params.get("ordering"):
+            base_query = base_query.filter(
+                position_start_date__gte=timezone.now().date()
+            )
         filter_options = self.request.query_params
         min_fee = filter_options.get("min_fee")
         max_fee = filter_options.get("max_fee")
