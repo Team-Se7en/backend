@@ -1,8 +1,10 @@
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from pprint import pprint
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.mixins import *
 from rest_framework.permissions import *
 from rest_framework.response import Response
@@ -380,11 +382,18 @@ class AdmissionViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
 class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
+    filter_backends = [OrderingFilter]
+    ordering_fields = ["request_count", "fee", "position_start_date"]
 
     def get_queryset(self):
         base_query = Position.objects.select_related("professor").filter(
             professor__id=self.request.user.professor.id
         )
+        #if self.request.query_params.get('ordering'):
+        #    if 'position_start_date' in self.request.query_params['ordering']:
+        #        base_query = base_query.filter(
+        #        position_start_date__gte=timezone.now().date()
+        #        )
         filter_options = self.request.query_params
         min_fee = filter_options.get("min_fee")
         max_fee = filter_options.get("max_fee")
@@ -417,11 +426,18 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
 class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
+    filter_backends = [OrderingFilter]
+    ordering_fields = ["fee", "position_start_date"]
 
     def get_queryset(self):
         base_query = Position.objects.select_related("professor").exclude(
             professor__id=self.request.user.professor.id
         )
+        #if self.request.query_params.get('ordering'):
+        #    if 'position_start_date' in self.request.query_params['ordering']:
+        #        base_query = base_query.filter(
+        #        position_start_date__gte=timezone.now().date()
+        #        )
         filter_options = self.request.query_params
         min_fee = filter_options.get("min_fee")
         max_fee = filter_options.get("max_fee")
@@ -454,6 +470,8 @@ class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
 class StudentPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = StudentPositionListSerializer
     permission_classes = [IsAuthenticated, IsStudent]
+    filter_backends = [OrderingFilter]
+    ordering_fields = ["fee", "position_start_date"]
 
     def get_queryset(self):
         base_query = Position.objects.all()
@@ -502,11 +520,13 @@ class StudentPositionFilteringViewSet(ListModelMixin, GenericViewSet):
 class StudentRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = RequestListSeralizer
     permission_classes = [IsAuthenticated, IsStudent, IsRequestOwner]
+    filter_backends = [OrderingFilter]
+    ordering_fields = ["fee", "position_start_date", "date_applied"]
 
     def get_queryset(self):
         base_query = Request.objects.select_related("student").filter(
             student__id=self.request.user.student.id
-        )
+        ).order_by("date_applied").reverse()
         filter_options = self.request.query_params
         min_fee = filter_options.get("min_fee")
         max_fee = filter_options.get("max_fee")
@@ -555,7 +575,7 @@ class ProfessorRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     def get_queryset(self):
         base_query = Request.objects.select_related("position", "student").filter(
             position__professor__id=self.request.user.professor.id
-        )
+        ).order_by("date_applied").reverse()
         filter_options = self.request.query_params
         status = filter_options.get("status")
         major = filter_options.get("major")

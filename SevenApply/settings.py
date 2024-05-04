@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "debug_toolbar",
     "rest_framework",
+    "django_filters",
     "drf_spectacular",
     "djoser",
     "eduportal",
