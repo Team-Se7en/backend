@@ -389,11 +389,11 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
         base_query = Position.objects.select_related("professor").filter(
             professor__id=self.request.user.professor.id
         )
-        if self.request.query_params.get('ordering'):
-            if 'position_start_date' in self.request.query_params['ordering']:
-                base_query = base_query.filter(
-                position_start_date__gte=timezone.now().date()
-                )
+        #if self.request.query_params.get('ordering'):
+        #    if 'position_start_date' in self.request.query_params['ordering']:
+        #        base_query = base_query.filter(
+        #        position_start_date__gte=timezone.now().date()
+        #        )
         filter_options = self.request.query_params
         min_fee = filter_options.get("min_fee")
         max_fee = filter_options.get("max_fee")
@@ -433,11 +433,11 @@ class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
         base_query = Position.objects.select_related("professor").exclude(
             professor__id=self.request.user.professor.id
         )
-        if self.request.query_params.get('ordering'):
-            if 'position_start_date' in self.request.query_params['ordering']:
-                base_query = base_query.filter(
-                position_start_date__gte=timezone.now().date()
-                )
+        #if self.request.query_params.get('ordering'):
+        #    if 'position_start_date' in self.request.query_params['ordering']:
+        #        base_query = base_query.filter(
+        #        position_start_date__gte=timezone.now().date()
+        #        )
         filter_options = self.request.query_params
         min_fee = filter_options.get("min_fee")
         max_fee = filter_options.get("max_fee")
