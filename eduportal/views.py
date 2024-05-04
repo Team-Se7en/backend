@@ -26,9 +26,24 @@ class UserInfoViewSet(GenericViewSet):
 
 # University Views -------------------------------------------------------------
 
-class UniversityViewSet(ModelViewSet):
+
+class UniversityViewSet(
+    CreateModelMixin,
+    RetrieveModelMixin,
+    GenericViewSet,
+):
     queryset = University.objects.all()
     serializer_class = UniversitySerializer
+
+    def get_permissions(self):
+        match self.action:
+            case "create":
+                return [IsAdminUser()]
+            case "retrieve":
+                return [AllowAny()]
+            case _:
+                return [AllowAny()]
+
 
 # Student Views ----------------------------------------------------------------
 

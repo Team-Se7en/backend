@@ -2,6 +2,7 @@ from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django_countries.serializer_fields import CountryField as CountrySerializer
 from eduportal.models import Position
 from rest_framework import serializers
 
@@ -78,6 +79,8 @@ class UserDetailSerializer(
 
 
 class UniversitySerializer(serializers.ModelSerializer):
+    country = CountrySerializer(name_only=True)
+
     class Meta:
         model = University
         fields = "__all__"
