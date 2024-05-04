@@ -24,6 +24,19 @@ class University(models.Model):
     total_student_count = models.IntegerField()
     international_student_count = models.IntegerField()
 
+    def delete(self, *args, **kwargs):
+        self.image.delete()
+        self.icon.delete()
+        super().delete(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            old_self = University.objects.get(pk=self.pk)
+            if old_self.image.name != self.image.name:
+                old_self.image.delete(save=False)
+            if old_self.icon.name != self.icon.name:
+                old_self.icon.delete(save=False)
+        super().save(*args, **kwargs)
 
 class Student(models.Model):
     GENDER = [
