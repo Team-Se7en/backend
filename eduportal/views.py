@@ -526,7 +526,7 @@ class StudentRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     def get_queryset(self):
         base_query = Request.objects.select_related("student").filter(
             student__id=self.request.user.student.id
-        )
+        ).order_by("date_applied").reverse()
         filter_options = self.request.query_params
         min_fee = filter_options.get("min_fee")
         max_fee = filter_options.get("max_fee")
