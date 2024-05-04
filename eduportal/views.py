@@ -521,7 +521,7 @@ class StudentRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     permission_classes = [IsAuthenticated, IsStudent, IsRequestOwner]
     filter_backends = [OrderingFilter]
     ordering_fields = ["fee", "position_start_date", "date_applied"]
-    
+
     def get_queryset(self):
         base_query = Request.objects.select_related("student").filter(
             student__id=self.request.user.student.id
@@ -574,7 +574,7 @@ class ProfessorRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     def get_queryset(self):
         base_query = Request.objects.select_related("position", "student").filter(
             position__professor__id=self.request.user.professor.id
-        )
+        ).order_by("date_applied").reverse()
         filter_options = self.request.query_params
         status = filter_options.get("status")
         major = filter_options.get("major")
