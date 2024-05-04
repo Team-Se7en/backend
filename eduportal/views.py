@@ -471,7 +471,7 @@ class StudentPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     permission_classes = [IsAuthenticated, IsStudent]
     filter_backends = [OrderingFilter]
     ordering_fields = ["fee", "position_start_date"]
-    
+
     def get_queryset(self):
         base_query = Position.objects.all()
         filter_options = self.request.query_params
@@ -519,7 +519,9 @@ class StudentPositionFilteringViewSet(ListModelMixin, GenericViewSet):
 class StudentRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = RequestListSeralizer
     permission_classes = [IsAuthenticated, IsStudent, IsRequestOwner]
-
+    filter_backends = [OrderingFilter]
+    ordering_fields = ["fee", "position_start_date", "date_applied"]
+    
     def get_queryset(self):
         base_query = Request.objects.select_related("student").filter(
             student__id=self.request.user.student.id
