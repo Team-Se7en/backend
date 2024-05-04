@@ -38,6 +38,7 @@ class University(models.Model):
                 old_self.icon.delete(save=False)
         super().save(*args, **kwargs)
 
+
 class Student(models.Model):
     GENDER = [
         ("M", "Male"),
@@ -57,7 +58,9 @@ class Student(models.Model):
 
 class Professor(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    university = models.CharField(max_length=255)
+    university = models.ForeignKey(
+        University, models.SET_NULL, blank=True, null=True, related_name="professors"
+    )
     department = models.CharField(max_length=255)
     birth_date = models.DateField(null=True, blank=True)
 

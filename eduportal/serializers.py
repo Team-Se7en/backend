@@ -212,6 +212,9 @@ class BasePositionSerializer(
 class BasePositionListSerializer(
     BasePositionSerializer,
 ):
+    university_name = serializers.SerializerMethodField("get_university_name")
+    university_id = serializers.SerializerMethodField("get_university_id")
+
     class Meta:
         model = Position
         exclude = [
@@ -221,10 +224,24 @@ class BasePositionListSerializer(
             "request_count",
         ]
 
+    def get_university_name(self, pos: Position):
+        try:
+            return pos.professor.university.name
+        except:
+            return None
+
+    def get_university_id(self, pos: Position):
+        try:
+            return pos.professor.university.id
+        except:
+            return None
+
 
 class BasePositionDetailSerializer(
     BasePositionSerializer,
 ):
+    university = serializers.SerializerMethodField("get_university")
+
     class Meta:
         model = Position
         exclude = [
@@ -232,6 +249,13 @@ class BasePositionDetailSerializer(
             "filled",
             "request_count",
         ]
+
+    def get_university(self, pos: Position):
+        try:
+            ser = UniversitySerializer(pos.professor.university)
+            return ser.data
+        except:
+            return None
 
 
 class StudentStatusMixin:
@@ -269,16 +293,12 @@ class OwnerPositionListSerializer(
     BasePositionListSerializer,
 ):
     professor = None
-    university_name = serializers.SerializerMethodField("get_university_name")
 
     class Meta(BasePositionListSerializer.Meta):
         exclude = [
             "description",
             "professor",
         ]
-
-    def get_university_name(self, pos: Position):
-        return pos.professor.university
 
 
 class AnonymousPositionDetailSerializer(
@@ -304,7 +324,6 @@ class OwnerPositionDetailSerializer(
     BasePositionDetailSerializer,
 ):
     requests = serializers.SerializerMethodField("get_requests")
-    university = serializers.SerializerMethodField("get_university")
     professor = None
 
     class Meta:
@@ -316,9 +335,6 @@ class OwnerPositionDetailSerializer(
     def get_requests(self, pos: Position):
         reqs = getattr(pos, "position_requests", [])
         return RequestListSeralizer(reqs, many=True).data
-
-    def get_university(self, pos: Position):
-        return pos.professor.university
 
 
 class PositionUpdateSerializer(
