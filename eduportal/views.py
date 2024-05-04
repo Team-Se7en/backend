@@ -24,6 +24,12 @@ class UserInfoViewSet(GenericViewSet):
         return Response(serializer.data)
 
 
+# University Views -------------------------------------------------------------
+
+class UniversityViewSet(ModelViewSet):
+    queryset = University.objects.all()
+    serializer_class = UniversitySerializer
+
 # Student Views ----------------------------------------------------------------
 
 

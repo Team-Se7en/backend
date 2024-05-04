@@ -8,6 +8,7 @@ from rest_framework import serializers
 from .models import *
 from .utils.views import get_user_type
 
+
 # User Serializers -------------------------------------------------------------
 
 
@@ -71,6 +72,15 @@ class UserDetailSerializer(
 
     def get_user_type(self, user):
         return get_user_type(self.context["request"])
+
+
+# University Serializers -------------------------------------------------------
+
+
+class UniversitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = University
+        fields = "__all__"
 
 
 # Student Serializers ----------------------------------------------------------

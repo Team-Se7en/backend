@@ -1,11 +1,28 @@
+from typing import Iterable
 from django.conf import settings
 from django.contrib import admin
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django_countries.fields import CountryField
 
 from .majors import *
 
 # Create your models here.
+
+
+class University(models.Model):
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    image = models.ImageField(upload_to="universities/")
+    icon = models.ImageField(upload_to="universities/")
+    website_url = models.URLField(max_length=255)
+    rank = models.IntegerField()
+    city = models.CharField(max_length=63)
+    country = CountryField()
+    total_student_count = models.IntegerField()
+    international_student_count = models.IntegerField()
 
 
 class Student(models.Model):
