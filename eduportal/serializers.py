@@ -338,7 +338,7 @@ class PositionUpdateSerializer(
             errors["position_end_date"] = (
                 "Position end date must be after position start date."
             )
-        if data["end_date"] < ["start_date"]:
+        if data["end_date"] < data["start_date"]:
             errors["end_date"] = "end date must be after start date."
         if errors:
             raise serializers.ValidationError(errors)
