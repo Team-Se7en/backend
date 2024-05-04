@@ -24,6 +24,25 @@ class UserInfoViewSet(GenericViewSet):
         return Response(serializer.data)
 
 
+# University Views -------------------------------------------------------------
+
+
+class UniversityViewSet(
+    ModelViewSet
+):
+    queryset = University.objects.all()
+    serializer_class = UniversitySerializer
+
+    def get_permissions(self):
+        match self.action:
+            case "list" | "create" | "partial_update" | "update" | "destroy":
+                return [IsAdminUser()]
+            case "retrieve":
+                return [AllowAny()]
+            case _:
+                return [AllowAny()]
+
+
 # Student Views ----------------------------------------------------------------
 
 

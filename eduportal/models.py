@@ -1,11 +1,42 @@
+from typing import Iterable
 from django.conf import settings
 from django.contrib import admin
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django_countries.fields import CountryField
 
 from .majors import *
 
 # Create your models here.
+
+
+class University(models.Model):
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    image = models.ImageField(upload_to="universities/")
+    icon = models.ImageField(upload_to="universities/")
+    website_url = models.URLField(max_length=255)
+    rank = models.IntegerField()
+    city = models.CharField(max_length=63)
+    country = CountryField()
+    total_student_count = models.IntegerField()
+    international_student_count = models.IntegerField()
+
+    def delete(self, *args, **kwargs):
+        self.image.delete()
+        self.icon.delete()
+        super().delete(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            old_self = University.objects.get(pk=self.pk)
+            if old_self.image.name != self.image.name:
+                old_self.image.delete(save=False)
+            if old_self.icon.name != self.icon.name:
+                old_self.icon.delete(save=False)
+        super().save(*args, **kwargs)
 
 
 class Student(models.Model):
@@ -27,7 +58,9 @@ class Student(models.Model):
 
 class Professor(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    university = models.CharField(max_length=255)
+    university = models.ForeignKey(
+        University, models.SET_NULL, blank=True, null=True, related_name="professors"
+    )
     department = models.CharField(max_length=255)
     birth_date = models.DateField(null=True, blank=True)
 
