@@ -1,4 +1,5 @@
-from django.db.models import Prefetch
+from django.contrib.auth import get_user_model
+from django.db.models import Prefetch, Min
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from pprint import pprint
@@ -8,12 +9,88 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.mixins import *
 from rest_framework.permissions import *
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 
 from .models import *
 from .permissions import *
 from .serializers import *
 from .utils.views import *
+
+User = get_user_model()
+
+# Landing Views ----------------------------------------------------------------
+
+
+class LandingViewSet(GenericViewSet):
+    def list(self, request):
+        professor_count = Professor.objects.count()
+        student_count = Student.objects.count()
+        return Response(
+            {
+                "professor_count": professor_count,
+                "student_count": student_count,
+                "growth": self.growth(request),
+                "top_universities": self.top_universities(request),
+                "top_professors": self.top_professors(request),
+                "top_students": self.top_students(request),
+            }
+        )
+
+    def growth(self, request):
+        qs = User.objects.only("date_joined")
+
+        site_creation_date = qs.aggregate(Min("date_joined"))["date_joined__min"]
+
+        today = timezone.now()
+
+        delta = (today - site_creation_date) / 4
+        date_points = [site_creation_date + i * delta for i in range(1, 5)]
+
+        growth = []
+        for date in date_points:
+            user_count = qs.filter(date_joined__lte=date).count()
+            growth.append(user_count)
+
+        return growth
+
+    def top_universities(self, request):
+        top_universities = University.objects.order_by("rank")[:5]
+        serializer = UniversitySerializer(top_universities, many=True)
+
+        return serializer.data
+
+    def top_professors(self, request):
+        professors = Professor.objects.annotate(
+            accepted_requests_count=models.Count(
+                "positions__request", filter=models.Q(positions__request__status="A")
+            )
+        ).select_related("user")
+
+        top_professors = professors.order_by("-accepted_requests_count")[:5]
+
+        data = []
+        for prof in top_professors:
+            serializer = ProfessorSerializer(prof)
+            data.append((serializer.data, prof.accepted_requests_count))
+
+        return data
+
+    def top_students(self, request):
+        students = Student.objects.annotate(
+            accepted_requests_count=models.Count(
+                "request", filter=models.Q(request__status="A")
+            )
+        ).select_related("user")
+
+        top_students = students.order_by("-accepted_requests_count")[:5]
+
+        data = []
+        for student in top_students:
+            serializer = StudentGetListSerializer(student)
+            data.append((serializer.data, student.accepted_requests_count))
+
+        return data
 
 
 # User Views -------------------------------------------------------------------
@@ -29,9 +106,7 @@ class UserInfoViewSet(GenericViewSet):
 # University Views -------------------------------------------------------------
 
 
-class UniversityViewSet(
-    ModelViewSet
-):
+class UniversityViewSet(ModelViewSet):
     queryset = University.objects.all()
     serializer_class = UniversitySerializer
 
@@ -389,7 +464,7 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
         base_query = Position.objects.select_related("professor").filter(
             professor__id=self.request.user.professor.id
         )
-        #if self.request.query_params.get('ordering'):
+        # if self.request.query_params.get('ordering'):
         #    if 'position_start_date' in self.request.query_params['ordering']:
         #        base_query = base_query.filter(
         #        position_start_date__gte=timezone.now().date()
@@ -433,7 +508,7 @@ class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
         base_query = Position.objects.select_related("professor").exclude(
             professor__id=self.request.user.professor.id
         )
-        #if self.request.query_params.get('ordering'):
+        # if self.request.query_params.get('ordering'):
         #    if 'position_start_date' in self.request.query_params['ordering']:
         #        base_query = base_query.filter(
         #        position_start_date__gte=timezone.now().date()
@@ -524,9 +599,12 @@ class StudentRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     ordering_fields = ["fee", "position_start_date", "date_applied"]
 
     def get_queryset(self):
-        base_query = Request.objects.select_related("student").filter(
-            student__id=self.request.user.student.id
-        ).order_by("date_applied").reverse()
+        base_query = (
+            Request.objects.select_related("student")
+            .filter(student__id=self.request.user.student.id)
+            .order_by("date_applied")
+            .reverse()
+        )
         filter_options = self.request.query_params
         min_fee = filter_options.get("min_fee")
         max_fee = filter_options.get("max_fee")
@@ -573,9 +651,12 @@ class ProfessorRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     permission_classes = [IsAuthenticated, IsProfessor, IsRequestOwner]
 
     def get_queryset(self):
-        base_query = Request.objects.select_related("position", "student").filter(
-            position__professor__id=self.request.user.professor.id
-        ).order_by("date_applied").reverse()
+        base_query = (
+            Request.objects.select_related("position", "student")
+            .filter(position__professor__id=self.request.user.professor.id)
+            .order_by("date_applied")
+            .reverse()
+        )
         filter_options = self.request.query_params
         status = filter_options.get("status")
         major = filter_options.get("major")
