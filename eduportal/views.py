@@ -129,6 +129,8 @@ class StudentGetListViewSet(
 ):
     queryset = Student.objects.select_related("user").all()
     serializer_class = StudentGetListSerializer
+    filter_backends = [SearchFilter]
+    search_fields = ['user__first_name','user__last_name','university_name']
 
 class StudentProfileViewSet(
     viewsets.GenericViewSet,
