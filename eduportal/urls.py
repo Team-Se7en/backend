@@ -25,5 +25,9 @@ router.register("stud_req_filter",views.StudentRequestFilteringViewSet,
                 basename="stud_req_filtering")
 router.register("prof_req_filter",views.ProfessorRequestFilteringViewSet,
                 basename="prof_req_filtering")
+
+router.register("landing", views.LandingViewSet, basename="landing")
+
 urlpatterns = []
+
 urlpatterns += router.urls
