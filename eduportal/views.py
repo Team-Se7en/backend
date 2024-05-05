@@ -5,7 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from pprint import pprint
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.filters import OrderingFilter
+from rest_framework.filters import OrderingFilter,SearchFilter
 from rest_framework.mixins import *
 from rest_framework.permissions import *
 from rest_framework.response import Response
@@ -130,7 +130,6 @@ class StudentGetListViewSet(
     queryset = Student.objects.select_related("user").all()
     serializer_class = StudentGetListSerializer
 
-
 class StudentProfileViewSet(
     viewsets.GenericViewSet,
 ):
@@ -177,6 +176,9 @@ class ProfessorViewSet(
     http_method_names = ["get", "patch"]
     queryset = Professor.objects.select_related("user").all()
     serializer_class = ProfessorSerializer
+    filter_backends = [SearchFilter]
+    search_fields = ['department','university__name','user__first_name'
+                     ,'user__last_name']
 
     @action(
         detail=False,
