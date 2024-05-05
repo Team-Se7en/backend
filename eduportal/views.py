@@ -50,7 +50,7 @@ class LandingViewSet(GenericViewSet):
         growth = []
         for date in date_points:
             user_count = qs.filter(date_joined__lte=date).count()
-            growth.append(user_count)
+            growth.append((date.date(), user_count))
 
         return growth
 
