@@ -399,7 +399,7 @@ class RequestViewSet(ModelViewSet):
                 "Request already exists", status=status.HTTP_400_BAD_REQUEST
             )
         position = Position.objects.get(pk=request.data.get("position_id"))
-        if position.capacity == 0:
+        if position.filled == 1:
             Response(
                 "This position is completed.", status=status.HTTP_405_METHOD_NOT_ALLOWED
             )
@@ -415,8 +415,9 @@ class RequestViewSet(ModelViewSet):
             },
         )
         serializer.is_valid(raise_exception=True)
-        position = serializer.save()
-        serializer = StudentCreateRequestSerializer(position)
+        saved_request = serializer.save()
+        position.request_count +=1
+        serializer = StudentCreateRequestSerializer(saved_request)
         return Response(serializer.data)
 
 
