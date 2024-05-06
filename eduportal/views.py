@@ -722,26 +722,70 @@ class ProfessorCVAPIView(APIView):
         return [AllowAny()]
 
 
-class WorkExperienceViewSet(viewsets.ModelViewSet):
-    queryset = WorkExperience.objects.all()
-    # serializer_class = WorkExperienceSerializer
+class ProfessorWorkExperienceViewSet(viewsets.ModelViewSet):
+    serializer_class = WorkExperienceSerializer
 
+    def get_queryset(self):
+        return WorkExperience.objects.filter(
+            cv__professor__pk=self.kwargs["professor_pk"]
+        )
 
-class EducationHistoryViewSet(viewsets.ModelViewSet):
-    queryset = EducationHistory.objects.all()
-    # serializer_class = EducationHistorySerializer
+    def perform_create(self, serializer):
+        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
+        serializer.save(cv=cv)
 
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsProfessor(), IsCVOwnerNested()]
+        return []
 
-class HardSkillViewSet(viewsets.ModelViewSet):
-    queryset = HardSkill.objects.all()
-    # serializer_class = HardSkillSerializer
+class ProfessorEducationHistoryViewSet(viewsets.ModelViewSet):
+    serializer_class = EducationHistorySerializer
 
+    def get_queryset(self):
+        return EducationHistory.objects.filter(
+            cv__professor__pk=self.kwargs["professor_pk"]
+        )
 
-class SoftSkillViewSet(viewsets.ModelViewSet):
-    queryset = SoftSkill.objects.all()
-    # serializer_class = SoftSkillSerializer
+    def perform_create(self, serializer):
+        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
+        serializer.save(cv=cv)
 
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsProfessor(), IsCVOwnerNested()]
+        return []
 
-class ProjectExperienceViewSet(viewsets.ModelViewSet):
-    queryset = ProjectExperience.objects.all()
-    # serializer_class = ProjectExperienceSerializer
+class ProfessorProjectExperienceViewSet(viewsets.ModelViewSet):
+    serializer_class = ProjectExperienceSerializer
+
+    def get_queryset(self):
+        return ProjectExperience.objects.filter(
+            cv__professor__pk=self.kwargs["professor_pk"]
+        )
+
+    def perform_create(self, serializer):
+        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
+        serializer.save(cv=cv)
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsProfessor(), IsCVOwnerNested()]
+        return []
+
+class ProfessorHardSkillViewSet(viewsets.ModelViewSet):
+    serializer_class = HardSkillSerializer
+
+    def get_queryset(self):
+        return HardSkill.objects.filter(
+            cv__professor__pk=self.kwargs["professor_pk"]
+        )
+
+    def perform_create(self, serializer):
+        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
+        serializer.save(cv=cv)
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsProfessor(), IsCVOwnerNested()]
+        return []
