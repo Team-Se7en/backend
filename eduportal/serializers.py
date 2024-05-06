@@ -430,3 +430,44 @@ class AdmissionSerializer(serializers.ModelSerializer):
         )
 
     student = StudentGetListSerializer()
+
+
+# CV Serializers ---------------------------------------------------------------
+
+
+class CVSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CV
+        exclude = []
+
+
+class WorkExperienceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkExperience
+        exclude = [
+            "cv",
+        ]
+
+
+class EducationHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EducationHistory
+        exclude = [
+            "cv",
+        ]
+
+
+class ProjectExperienceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectExperience
+        exclude = [
+            "cv",
+        ]
+
+
+class HardSkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HardSkill
+        exclude = [
+            "cv",
+        ]

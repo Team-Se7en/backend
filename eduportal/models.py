@@ -120,3 +120,76 @@ class Request(models.Model):
     # متنی که دانشجو در ریکوئست می‌نویسد
     cover_letter = models.TextField()
     share_with_others = models.BooleanField(default=False)
+
+
+class CV(models.Model):
+    student = models.OneToOneField(
+        Student, on_delete=models.CASCADE, related_name="cv", null=True, blank=True
+    )
+    professor = models.OneToOneField(
+        Professor, on_delete=models.CASCADE, related_name="cv", null=True, blank=True
+    )
+    title = models.CharField(max_length=255, null=True, blank=True)
+    birth_date = models.DateField(null=True, blank=True)
+    GENDER_CHOICES = [
+        ("M", "Male"),
+        ("F", "Female"),
+        ("R", "Rather not to say"),
+    ]
+    gender = models.CharField(
+        max_length=1, choices=GENDER_CHOICES, null=True, blank=True
+    )
+    EMPLOYMENT_STATUS_CHOICES = [
+        ("E", "Employed"),
+        ("U", "Unemployed"),
+        ("S", "Student"),
+        ("AS", "Actively Seeking Work"),
+        ("OW", "Open to Work"),
+        ("NI", "Not Interested"),
+    ]
+    employment_status = models.CharField(
+        max_length=2, choices=EMPLOYMENT_STATUS_CHOICES, null=True, blank=True
+    )
+    about = models.TextField(null=True, blank=True)
+    soft_skills = models.ManyToManyField("SoftSkill")
+
+class WorkExperience(models.Model):
+    cv = models.ForeignKey(
+        CV, on_delete=models.CASCADE, related_name="work_experiences"
+    )
+    company_name = models.CharField(max_length=255)
+    company_website = models.URLField(max_length=200, null=True, blank=True)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    job_title = models.CharField(max_length=255)
+
+
+class EducationHistory(models.Model):
+    cv = models.ForeignKey(
+        CV, on_delete=models.CASCADE, related_name="education_histories"
+    )
+    institute = models.CharField(max_length=255)
+    degree = models.CharField(max_length=255)
+    field_of_study = models.CharField(max_length=255)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    grade = models.FloatField(null=True, blank=True)
+
+
+class ProjectExperience(models.Model):
+    cv = models.ForeignKey(
+        CV, on_delete=models.CASCADE, related_name="project_experiences"
+    )
+    title = models.CharField(max_length=255)
+    link = models.URLField(max_length=200)
+    description = models.TextField(null=True, blank=True)
+
+
+class HardSkill(models.Model):
+    cv = models.ForeignKey(CV, on_delete=models.CASCADE, related_name="hard_skills")
+    technology = models.CharField(max_length=255)
+    skill_level = models.IntegerField()
+    experience_time = models.DurationField()
+
+class SoftSkill(models.Model):
+    name = models.CharField(max_length=255)

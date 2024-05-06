@@ -5,7 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from pprint import pprint
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.filters import OrderingFilter,SearchFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.mixins import *
 from rest_framework.permissions import *
 from rest_framework.response import Response
@@ -130,7 +130,8 @@ class StudentGetListViewSet(
     queryset = Student.objects.select_related("user").all()
     serializer_class = StudentGetListSerializer
     filter_backends = [SearchFilter]
-    search_fields = ['user__first_name','user__last_name','university_name']
+    search_fields = ["user__first_name", "user__last_name", "university_name"]
+
 
 class StudentProfileViewSet(
     viewsets.GenericViewSet,
@@ -179,8 +180,12 @@ class ProfessorViewSet(
     queryset = Professor.objects.select_related("user").all()
     serializer_class = ProfessorSerializer
     filter_backends = [SearchFilter]
-    search_fields = ['department','university__name','user__first_name'
-                     ,'user__last_name']
+    search_fields = [
+        "department",
+        "university__name",
+        "user__first_name",
+        "user__last_name",
+    ]
 
     @action(
         detail=False,
@@ -678,3 +683,109 @@ class ProfessorRequestFilteringViewSet(ListModelMixin, GenericViewSet):
         if major is not None:
             base_query = base_query.filter(student__major=major)
         return base_query
+
+
+# CV Views ---------------------------------------------------------------------
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+
+class ProfessorCVAPIView(APIView):
+    name = "CV API"
+    serializer_class = CVSerializer
+
+    def get(self, request, professor_pk, format=None):
+        cv = self.get_object(professor_pk)
+        serializer = CVSerializer(cv)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, professor_pk, format=None):
+        cv = self.get_object(professor_pk)
+        serializer = CVSerializer(cv, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_object(self, professor_pk):
+        get_object_or_404(CV, professor_id=professor_pk)
+        return CV.objects.get(professor__id=professor_pk)
+
+    def get_permissions(self):
+        if self.request.method.lower() == "get":
+            return [AllowAny()]
+        if self.request.method.lower() in ["patch", "put", "delete"]:
+            return [IsProfessor(), IsCVOwner()]
+        return [AllowAny()]
+
+
+class ProfessorWorkExperienceViewSet(viewsets.ModelViewSet):
+    serializer_class = WorkExperienceSerializer
+
+    def get_queryset(self):
+        return WorkExperience.objects.filter(
+            cv__professor__pk=self.kwargs["professor_pk"]
+        )
+
+    def perform_create(self, serializer):
+        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
+        serializer.save(cv=cv)
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsProfessor(), IsCVOwnerNested()]
+        return []
+
+class ProfessorEducationHistoryViewSet(viewsets.ModelViewSet):
+    serializer_class = EducationHistorySerializer
+
+    def get_queryset(self):
+        return EducationHistory.objects.filter(
+            cv__professor__pk=self.kwargs["professor_pk"]
+        )
+
+    def perform_create(self, serializer):
+        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
+        serializer.save(cv=cv)
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsProfessor(), IsCVOwnerNested()]
+        return []
+
+class ProfessorProjectExperienceViewSet(viewsets.ModelViewSet):
+    serializer_class = ProjectExperienceSerializer
+
+    def get_queryset(self):
+        return ProjectExperience.objects.filter(
+            cv__professor__pk=self.kwargs["professor_pk"]
+        )
+
+    def perform_create(self, serializer):
+        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
+        serializer.save(cv=cv)
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsProfessor(), IsCVOwnerNested()]
+        return []
+
+class ProfessorHardSkillViewSet(viewsets.ModelViewSet):
+    serializer_class = HardSkillSerializer
+
+    def get_queryset(self):
+        return HardSkill.objects.filter(
+            cv__professor__pk=self.kwargs["professor_pk"]
+        )
+
+    def perform_create(self, serializer):
+        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
+        serializer.save(cv=cv)
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsProfessor(), IsCVOwnerNested()]
+        return []
