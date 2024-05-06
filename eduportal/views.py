@@ -678,3 +678,53 @@ class ProfessorRequestFilteringViewSet(ListModelMixin, GenericViewSet):
         if major is not None:
             base_query = base_query.filter(student__major=major)
         return base_query
+# CV Views ---------------------------------------------------------------------
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+class CVAPIView(APIView):
+    def get(self, request, professor_pk, format=None):
+        cv = self.get_object(professor_pk)
+        serializer = CVSerializer(cv)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, professor_pk, format=None):
+        cv = self.get_object(professor_pk)
+        serializer = CVSerializer(cv, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_object(self, professor_pk):
+        return CV.objects.get(professor__id=professor_pk)
+    
+    def get_permissions(self):
+        if self.request.method.lower() == "get":
+            return [AllowAny()]
+        if self.request.method.lower() == "patch":
+            return [IsProfessor(), IsCVOwner()]
+
+
+class WorkExperienceViewSet(viewsets.ModelViewSet):
+    queryset = WorkExperience.objects.all()
+    # serializer_class = WorkExperienceSerializer
+
+class EducationHistoryViewSet(viewsets.ModelViewSet):
+    queryset = EducationHistory.objects.all()
+    # serializer_class = EducationHistorySerializer
+
+class HardSkillViewSet(viewsets.ModelViewSet):
+    queryset = HardSkill.objects.all()
+    # serializer_class = HardSkillSerializer
+
+class SoftSkillViewSet(viewsets.ModelViewSet):
+    queryset = SoftSkill.objects.all()
+    # serializer_class = SoftSkillSerializer
+
+class ProjectExperienceViewSet(viewsets.ModelViewSet):
+    queryset = ProjectExperience.objects.all()
+    # serializer_class = ProjectExperienceSerializer

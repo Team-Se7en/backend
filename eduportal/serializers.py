@@ -430,3 +430,12 @@ class AdmissionSerializer(serializers.ModelSerializer):
         )
 
     student = StudentGetListSerializer()
+
+
+# CV Serializers ---------------------------------------------------------------
+
+
+class CVSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CV
+        exclude = []

@@ -120,3 +120,44 @@ class Request(models.Model):
     # متنی که دانشجو در ریکوئست می‌نویسد
     cover_letter = models.TextField()
     share_with_others = models.BooleanField(default=False)
+
+
+class CV(models.Model):
+    student = models.OneToOneField(
+        Student, on_delete=models.CASCADE, related_name="cv", null=True, blank=True
+    )
+    professor = models.OneToOneField(
+        Professor, on_delete=models.CASCADE, related_name="cv", null=True, blank=True
+    )
+    # other fields...
+
+
+class WorkExperience(models.Model):
+    cv = models.ForeignKey(
+        CV, on_delete=models.CASCADE, related_name="work_experiences"
+    )
+    # other fields...
+
+
+class EducationHistory(models.Model):
+    cv = models.ForeignKey(
+        CV, on_delete=models.CASCADE, related_name="education_histories"
+    )
+    # other fields...
+
+
+class ProjectExperience(models.Model):
+    cv = models.ForeignKey(
+        CV, on_delete=models.CASCADE, related_name="project_experiences"
+    )
+    # other fields...
+
+
+class HardSkill(models.Model):
+    cv = models.ForeignKey(CV, on_delete=models.CASCADE, related_name="hard_skills")
+    # other fields...
+
+
+class SoftSkill(models.Model):
+    cv = models.ForeignKey(CV, on_delete=models.CASCADE, related_name="soft_skills")
+    # other fields...

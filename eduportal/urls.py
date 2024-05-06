@@ -28,6 +28,20 @@ router.register("prof_req_filter",views.ProfessorRequestFilteringViewSet,
 
 router.register("landing", views.LandingViewSet, basename="landing")
 
-urlpatterns = []
 
+professors_router = routers.NestedSimpleRouter(router, "professors", lookup="professor")
+
+professors_router.register(
+    "CV/work-xps", views.WorkExperienceViewSet, basename="professor-CV-xps"
+)
+
+
+urlpatterns = [
+    path(
+        "professors/<int:professor_pk>/CV/",
+        views.CVAPIView.as_view(),
+        name="professor-cv",
+    ),
+]
 urlpatterns += router.urls
+urlpatterns += professors_router.urls
