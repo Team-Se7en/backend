@@ -129,6 +129,7 @@ class CV(models.Model):
     professor = models.OneToOneField(
         Professor, on_delete=models.CASCADE, related_name="cv", null=True, blank=True
     )
+    title = models.CharField(max_length=255, null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     GENDER_CHOICES = [
         ("M", "Male"),
@@ -150,34 +151,45 @@ class CV(models.Model):
         max_length=2, choices=EMPLOYMENT_STATUS_CHOICES, null=True, blank=True
     )
     about = models.TextField(null=True, blank=True)
-
+    soft_skills = models.ManyToManyField("SoftSkill")
 
 class WorkExperience(models.Model):
     cv = models.ForeignKey(
         CV, on_delete=models.CASCADE, related_name="work_experiences"
     )
-    # other fields...
+    company_name = models.CharField(max_length=255)
+    company_website = models.URLField(max_length=200, null=True, blank=True)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    job_title = models.CharField(max_length=255)
 
 
 class EducationHistory(models.Model):
     cv = models.ForeignKey(
         CV, on_delete=models.CASCADE, related_name="education_histories"
     )
-    # other fields...
+    institute = models.CharField(max_length=255)
+    degree = models.CharField(max_length=255)
+    field_of_study = models.CharField(max_length=255)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    grade = models.FloatField(null=True, blank=True)
 
 
 class ProjectExperience(models.Model):
     cv = models.ForeignKey(
         CV, on_delete=models.CASCADE, related_name="project_experiences"
     )
-    # other fields...
+    title = models.CharField(max_length=255)
+    link = models.URLField(max_length=200)
+    description = models.TextField(null=True, blank=True)
 
 
 class HardSkill(models.Model):
     cv = models.ForeignKey(CV, on_delete=models.CASCADE, related_name="hard_skills")
-    # other fields...
-
+    technology = models.CharField(max_length=255)
+    skill_level = models.IntegerField()
+    experience_time = models.DurationField()
 
 class SoftSkill(models.Model):
-    cv = models.ForeignKey(CV, on_delete=models.CASCADE, related_name="soft_skills")
-    # other fields...
+    name = models.CharField(max_length=255)

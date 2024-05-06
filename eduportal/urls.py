@@ -39,7 +39,7 @@ professors_router.register(
 urlpatterns = [
     path(
         "professors/<int:professor_pk>/CV/",
-        views.CVAPIView.as_view(),
+        views.ProfessorCVAPIView.as_view(),
         name="professor-cv",
     ),
 ]

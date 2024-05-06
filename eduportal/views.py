@@ -693,7 +693,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 
-class CVAPIView(APIView):
+class ProfessorCVAPIView(APIView):
     name = "CV API"
     serializer_class = CVSerializer
 
