@@ -129,7 +129,27 @@ class CV(models.Model):
     professor = models.OneToOneField(
         Professor, on_delete=models.CASCADE, related_name="cv", null=True, blank=True
     )
-    # other fields...
+    birth_date = models.DateField(null=True, blank=True)
+    GENDER_CHOICES = [
+        ("M", "Male"),
+        ("F", "Female"),
+        ("R", "Rather not to say"),
+    ]
+    gender = models.CharField(
+        max_length=1, choices=GENDER_CHOICES, null=True, blank=True
+    )
+    EMPLOYMENT_STATUS_CHOICES = [
+        ("E", "Employed"),
+        ("U", "Unemployed"),
+        ("S", "Student"),
+        ("AS", "Actively Seeking Work"),
+        ("OW", "Open to Work"),
+        ("NI", "Not Interested"),
+    ]
+    employment_status = models.CharField(
+        max_length=2, choices=EMPLOYMENT_STATUS_CHOICES, null=True, blank=True
+    )
+    about = models.TextField(null=True, blank=True)
 
 
 class WorkExperience(models.Model):
