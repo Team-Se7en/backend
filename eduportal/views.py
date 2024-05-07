@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Prefetch, Min
+from django.db.models import Prefetch, Min, Count
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from pprint import pprint
@@ -106,9 +106,13 @@ class UserInfoViewSet(GenericViewSet):
 # University Views -------------------------------------------------------------
 
 
-class UniversityViewSet(ModelViewSet):
-    queryset = University.objects.all()
+class UniversityViewSet(viewsets.ModelViewSet):
     serializer_class = UniversitySerializer
+
+    def get_queryset(self):
+        return University.objects.annotate(
+            position_count=Count("professors__positions")
+        )
 
     def get_permissions(self):
         match self.action:
@@ -739,6 +743,7 @@ class ProfessorWorkExperienceViewSet(viewsets.ModelViewSet):
             return [IsProfessor(), IsCVOwnerNested()]
         return []
 
+
 class ProfessorEducationHistoryViewSet(viewsets.ModelViewSet):
     serializer_class = EducationHistorySerializer
 
@@ -755,6 +760,7 @@ class ProfessorEducationHistoryViewSet(viewsets.ModelViewSet):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [IsProfessor(), IsCVOwnerNested()]
         return []
+
 
 class ProfessorProjectExperienceViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectExperienceSerializer
@@ -773,13 +779,12 @@ class ProfessorProjectExperienceViewSet(viewsets.ModelViewSet):
             return [IsProfessor(), IsCVOwnerNested()]
         return []
 
+
 class ProfessorHardSkillViewSet(viewsets.ModelViewSet):
     serializer_class = HardSkillSerializer
 
     def get_queryset(self):
-        return HardSkill.objects.filter(
-            cv__professor__pk=self.kwargs["professor_pk"]
-        )
+        return HardSkill.objects.filter(cv__professor__pk=self.kwargs["professor_pk"])
 
     def perform_create(self, serializer):
         cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
