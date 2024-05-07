@@ -80,10 +80,22 @@ class UserDetailSerializer(
 
 class UniversitySerializer(serializers.ModelSerializer):
     country = CountrySerializer(name_only=True)
+    position_count = serializers.IntegerField()
+    recent_positions = serializers.SerializerMethodField()
 
     class Meta:
         model = University
         fields = "__all__"
+
+    def get_recent_positions(self, obj):
+        poses = (
+            Position.objects.filter(professor__university=obj)
+            .select_related("professor", "professor__user", "professor__university")
+            .prefetch_related("tags")
+        )
+
+        poses = poses.filter(start_date__lte=timezone.now()).order_by("-start_date")[:5]
+        return BasePositionListSerializer(poses, many=True).data
 
 
 # Student Serializers ----------------------------------------------------------
@@ -430,3 +442,44 @@ class AdmissionSerializer(serializers.ModelSerializer):
         )
 
     student = StudentGetListSerializer()
+
+
+# CV Serializers ---------------------------------------------------------------
+
+
+class CVSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CV
+        exclude = []
+
+
+class WorkExperienceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkExperience
+        exclude = [
+            "cv",
+        ]
+
+
+class EducationHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EducationHistory
+        exclude = [
+            "cv",
+        ]
+
+
+class ProjectExperienceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectExperience
+        exclude = [
+            "cv",
+        ]
+
+
+class HardSkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HardSkill
+        exclude = [
+            "cv",
+        ]
