@@ -78,6 +78,14 @@ class UserDetailSerializer(
 # University Serializers -------------------------------------------------------
 
 
+class SimpleUniversitySerializer(serializers.ModelSerializer):
+    country = CountrySerializer(name_only=True)
+
+    class Meta:
+        model = University
+        fields = "__all__"
+
+
 class UniversitySerializer(serializers.ModelSerializer):
     country = CountrySerializer(name_only=True)
     position_count = serializers.IntegerField()

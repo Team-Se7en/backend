@@ -56,7 +56,7 @@ class LandingViewSet(GenericViewSet):
 
     def top_universities(self, request):
         top_universities = University.objects.order_by("rank")[:5]
-        serializer = UniversitySerializer(top_universities, many=True)
+        serializer = SimpleUniversitySerializer(top_universities, many=True)
 
         return serializer.data
 
