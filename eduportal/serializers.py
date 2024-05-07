@@ -88,8 +88,8 @@ class SimpleUniversitySerializer(serializers.ModelSerializer):
 
 class UniversitySerializer(serializers.ModelSerializer):
     country = CountrySerializer(name_only=True)
-    position_count = serializers.IntegerField()
-    recent_positions = serializers.SerializerMethodField()
+    position_count = serializers.IntegerField(read_only=True)
+    recent_positions = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = University
