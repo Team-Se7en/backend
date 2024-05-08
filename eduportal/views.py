@@ -183,13 +183,6 @@ class ProfessorViewSet(
     http_method_names = ["get", "patch"]
     queryset = Professor.objects.select_related("user").all()
     serializer_class = ProfessorSerializer
-    filter_backends = [SearchFilter]
-    search_fields = [
-        "department",
-        "university__name",
-        "user__first_name",
-        "user__last_name",
-    ]
 
     @action(
         detail=False,
@@ -242,6 +235,18 @@ class TagListViewSet(
 
 
 class PositionViewSet(ModelViewSet):
+    
+    filter_backends = [SearchFilter]
+    search_fields = [
+        "title",
+        "description",
+        "professor__user__first_name",
+        "professor__user__last_name",
+        "professor__department",
+        "professor__university__name",
+        "tags__label",
+    ]
+
     def get_serializer_class(self):
         action = self.action
         user = self.request.user
