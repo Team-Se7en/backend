@@ -688,11 +688,6 @@ class ProfessorRequestFilteringViewSet(ListModelMixin, GenericViewSet):
 # CV Views ---------------------------------------------------------------------
 
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-
-
 class ProfessorCVAPIView(APIView):
     name = "CV API"
     serializer_class = CVSerializer
@@ -739,6 +734,7 @@ class ProfessorWorkExperienceViewSet(viewsets.ModelViewSet):
             return [IsProfessor(), IsCVOwnerNested()]
         return []
 
+
 class ProfessorEducationHistoryViewSet(viewsets.ModelViewSet):
     serializer_class = EducationHistorySerializer
 
@@ -755,6 +751,7 @@ class ProfessorEducationHistoryViewSet(viewsets.ModelViewSet):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [IsProfessor(), IsCVOwnerNested()]
         return []
+
 
 class ProfessorProjectExperienceViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectExperienceSerializer
@@ -773,13 +770,12 @@ class ProfessorProjectExperienceViewSet(viewsets.ModelViewSet):
             return [IsProfessor(), IsCVOwnerNested()]
         return []
 
+
 class ProfessorHardSkillViewSet(viewsets.ModelViewSet):
     serializer_class = HardSkillSerializer
 
     def get_queryset(self):
-        return HardSkill.objects.filter(
-            cv__professor__pk=self.kwargs["professor_pk"]
-        )
+        return HardSkill.objects.filter(cv__professor__pk=self.kwargs["professor_pk"])
 
     def perform_create(self, serializer):
         cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
