@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "debug_toolbar",
     "rest_framework",
+    "rest_framework.authtoken",
     "django_filters",
     "drf_spectacular",
     "djoser",
