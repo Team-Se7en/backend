@@ -78,12 +78,32 @@ class UserDetailSerializer(
 # University Serializers -------------------------------------------------------
 
 
-class UniversitySerializer(serializers.ModelSerializer):
+class SimpleUniversitySerializer(serializers.ModelSerializer):
     country = CountrySerializer(name_only=True)
 
     class Meta:
         model = University
         fields = "__all__"
+
+
+class UniversitySerializer(serializers.ModelSerializer):
+    country = CountrySerializer(name_only=True)
+    position_count = serializers.IntegerField(read_only=True)
+    recent_positions = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = University
+        fields = "__all__"
+
+    def get_recent_positions(self, obj):
+        poses = (
+            Position.objects.filter(professor__university=obj)
+            .select_related("professor", "professor__user", "professor__university")
+            .prefetch_related("tags")
+        )
+
+        poses = poses.filter(start_date__lte=timezone.now()).order_by("-start_date")[:5]
+        return BasePositionListSerializer(poses, many=True).data
 
 
 # Student Serializers ----------------------------------------------------------

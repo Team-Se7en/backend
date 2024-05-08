@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Prefetch, Min
+from django.db.models import Prefetch, Min, Count
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.http import Http404
@@ -57,7 +57,7 @@ class LandingViewSet(GenericViewSet):
 
     def top_universities(self, request):
         top_universities = University.objects.order_by("rank")[:5]
-        serializer = UniversitySerializer(top_universities, many=True)
+        serializer = SimpleUniversitySerializer(top_universities, many=True)
 
         return serializer.data
 
@@ -107,9 +107,13 @@ class UserInfoViewSet(GenericViewSet):
 # University Views -------------------------------------------------------------
 
 
-class UniversityViewSet(ModelViewSet):
-    queryset = University.objects.all()
+class UniversityViewSet(viewsets.ModelViewSet):
     serializer_class = UniversitySerializer
+
+    def get_queryset(self):
+        return University.objects.annotate(
+            position_count=Count("professors__positions")
+        )
 
     def get_permissions(self):
         match self.action:
@@ -180,13 +184,6 @@ class ProfessorViewSet(
     http_method_names = ["get", "patch"]
     queryset = Professor.objects.select_related("user").all()
     serializer_class = ProfessorSerializer
-    filter_backends = [SearchFilter]
-    search_fields = [
-        "department",
-        "university__name",
-        "user__first_name",
-        "user__last_name",
-    ]
 
     @action(
         detail=False,
@@ -239,6 +236,18 @@ class TagListViewSet(
 
 
 class PositionViewSet(ModelViewSet):
+    
+    filter_backends = [SearchFilter]
+    search_fields = [
+        "title",
+        "description",
+        "professor__user__first_name",
+        "professor__user__last_name",
+        "professor__department",
+        "professor__university__name",
+        "tags__label",
+    ]
+
     def get_serializer_class(self):
         action = self.action
         user = self.request.user

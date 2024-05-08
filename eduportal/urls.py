@@ -6,7 +6,7 @@ from rest_framework.routers import SimpleRouter
 from . import views
 
 router = routers.DefaultRouter()
-router.register("universities", views.UniversityViewSet)
+router.register("universities", views.UniversityViewSet, basename="universities")
 router.register("students", views.StudentGetListViewSet)
 router.register("student-profile", views.StudentProfileViewSet, "student_profile")
 router.register("professors", views.ProfessorViewSet)
