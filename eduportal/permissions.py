@@ -1,4 +1,4 @@
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 
 class IsProfessor(BasePermission):
@@ -17,24 +17,32 @@ class IsCVOwner(BasePermission):
             return user_id == obj.professor.user.id
         elif obj.student:
             return user_id == obj.student.user.id
-        
+
         return False
 
+
 class IsCVOwnerNested(BasePermission):
-    def has_object_permission(self, request, view, obj):
-        user_id = request.user.id
-        cv = obj.cv
-        if cv.professor:
-            return user_id == cv.professor.user.id
-        elif cv.student:
-            return user_id == cv.student.user.id
-        
-        return False
-    
+    def has_permission(self, request, view):
+        user = request.user
+
+        if user.is_student:
+            if "student_pk" in view.kwargs:
+                return user.student.id == int(view.kwargs["student_pk"])
+            else:
+                return False
+        else:
+            if "professor_pk" in view.kwargs:
+                return user.professor.id == int(view.kwargs["professor_pk"])
+            else:
+                return False
+
 
 class IsPositionOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
         return request.user.professor.id == obj.professor.id
+
+    def has_permission(self, request, view):
+        return request.method in SAFE_METHODS
 
 
 class AllowNone(BasePermission):

@@ -1,11 +1,13 @@
 from typing import Iterable
 from django.conf import settings
 from django.contrib import admin
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django_countries.fields import CountryField
 
 from .majors import *
+from .utils.field_choices import *
 
 # Create your models here.
 
@@ -122,6 +124,10 @@ class Request(models.Model):
     share_with_others = models.BooleanField(default=False)
 
 
+class SoftSkill(models.Model):
+    skill = models.IntegerField(choices=SoftSkillChoices, primary_key=True)
+
+
 class CV(models.Model):
     student = models.OneToOneField(
         Student, on_delete=models.CASCADE, related_name="cv", null=True, blank=True
@@ -131,27 +137,13 @@ class CV(models.Model):
     )
     title = models.CharField(max_length=255, null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
-    GENDER_CHOICES = [
-        ("M", "Male"),
-        ("F", "Female"),
-        ("R", "Rather not to say"),
-    ]
-    gender = models.CharField(
-        max_length=1, choices=GENDER_CHOICES, null=True, blank=True
-    )
-    EMPLOYMENT_STATUS_CHOICES = [
-        ("E", "Employed"),
-        ("U", "Unemployed"),
-        ("S", "Student"),
-        ("AS", "Actively Seeking Work"),
-        ("OW", "Open to Work"),
-        ("NI", "Not Interested"),
-    ]
-    employment_status = models.CharField(
-        max_length=2, choices=EMPLOYMENT_STATUS_CHOICES, null=True, blank=True
+    gender = models.IntegerField(choices=GenderChoices.choices, null=True, blank=True)
+    employment_status = models.IntegerField(
+        choices=EmploymentStatusChoices.choices, null=True, blank=True
     )
     about = models.TextField(null=True, blank=True)
-    soft_skills = models.ManyToManyField("SoftSkill")
+    soft_skills = models.ManyToManyField(SoftSkill)
+
 
 class WorkExperience(models.Model):
     cv = models.ForeignKey(
@@ -187,9 +179,8 @@ class ProjectExperience(models.Model):
 
 class HardSkill(models.Model):
     cv = models.ForeignKey(CV, on_delete=models.CASCADE, related_name="hard_skills")
-    technology = models.CharField(max_length=255)
-    skill_level = models.IntegerField()
-    experience_time = models.DurationField()
-
-class SoftSkill(models.Model):
-    name = models.CharField(max_length=255)
+    technology = models.IntegerField(choices=TechChoices)
+    skill_level = models.IntegerField(
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    experience_time = models.IntegerField(choices=XPDurationChoices)
