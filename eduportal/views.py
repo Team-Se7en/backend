@@ -89,7 +89,7 @@ class LandingViewSet(GenericViewSet):
 
         data = []
         for student in top_students:
-            serializer = StudentGetListSerializer(student)
+            serializer = StudentGetListSerializer(student, context={"request": request})
             data.append((serializer.data, student.accepted_requests_count))
 
         return data
