@@ -539,31 +539,20 @@ class StudentRequestFilteringViewSet(ListModelMixin, GenericViewSet):
 class ProfessorRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = RequestListSeralizer
     permission_classes = [IsAuthenticated, IsProfessor, IsRequestOwner]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ProfessorRequestFilter
+    queryset = (
+        Request.objects.select_related("position", "student")
+        .order_by("date_applied")
+        .reverse()
+    )
 
-    def get_queryset(self):
-        base_query = (
-            Request.objects.select_related("position", "student")
+    def filter_queryset(self, queryset):
+        return (
+            super()
+            .filter_queryset(queryset)
             .filter(position__professor__id=self.request.user.professor.id)
-            .order_by("date_applied")
-            .reverse()
         )
-        filter_options = self.request.query_params
-        status = filter_options.get("status")
-        major = filter_options.get("major")
-        if status is not None:
-            status_word = None
-            if status == "A":
-                status_word = "A"
-            elif status == "P":
-                status_word = "P"
-            elif status == "R":
-                status_word = "R"
-            if status_word is None:
-                return Request.objects.none()
-            base_query = base_query.filter(status=status_word)
-        if major is not None:
-            base_query = base_query.filter(student__major=major)
-        return base_query
 
 
 # CV Views ---------------------------------------------------------------------

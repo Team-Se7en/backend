@@ -135,3 +135,9 @@ class StudentRequestFilter(filters.FilterSet):
             return queryset
         else:
             return queryset.none()
+
+
+class ProfessorRequestFilter(filters.FilterSet):
+    class Meta:
+        model = Request
+        fields = ["status", "student__major"]
