@@ -509,48 +509,10 @@ class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
 class StudentPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = StudentPositionListSerializer
     permission_classes = [IsAuthenticated, IsStudent]
-    filter_backends = [OrderingFilter]
+    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    filterset_class = StudentPositionFilter
+    queryset = Position.objects.all()
     ordering_fields = ["fee", "position_start_date"]
-
-    def get_queryset(self):
-        base_query = Position.objects.all()
-        filter_options = self.request.query_params
-        min_fee = filter_options.get("min_fee")
-        max_fee = filter_options.get("max_fee")
-        term = filter_options.get("term")
-        year = filter_options.get("year")
-        is_filled = filter_options.get("is_filled")
-        if min_fee is not None:
-            base_query = base_query.filter(fee__gte=min_fee)
-        if max_fee is not None:
-            base_query = base_query.filter(fee__lte=max_fee)
-        if term is not None:
-            if term == "summer":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=5
-                ).filter(position_start_date__month__lt=10)
-            elif term == "winter":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=10
-                ).filter(position_start_date__month__lte=12)
-            elif term == "spring":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=1
-                ).filter(position_start_date__month__lt=5)
-            else:
-                return Response("Invalid Term", status=status.HTTP_400_BAD_REQUEST)
-        if year is not None:
-            base_query = base_query.filter(position_start_date__year=year)
-        if is_filled is not None:
-            if is_filled == "Y":
-                base_query = base_query.filter(filled=1)
-            elif is_filled == "N":
-                base_query = base_query.filter(filled=0)
-            else:
-                return Response(
-                    "Invalid filled value", status=status.HTTP_400_BAD_REQUEST
-                )
-        return base_query
 
 
 # Request Filtering Views ------------------------------------------------------
