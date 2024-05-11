@@ -484,53 +484,26 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
 
     def filter_queryset(self, queryset):
         return (
-            super().filter_queryset(queryset)
-               .filter(professor__id=self.request.user.professor.id)
+            super()
+            .filter_queryset(queryset)
+            .filter(professor__id=self.request.user.professor.id)
         )
 
 
 class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
-    filter_backends = [OrderingFilter]
+    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    filterset_class = ProfessorOtherPositionFilter
+    queryset = Position.objects.all()
     ordering_fields = ["fee", "position_start_date"]
 
-    def get_queryset(self):
-        base_query = Position.objects.select_related("professor").exclude(
-            professor__id=self.request.user.professor.id
+    def filter_queryset(self, queryset):
+        return (
+            super()
+            .filter_queryset(queryset)
+            .exclude(professor__id=self.request.user.professor.id)
         )
-        # if self.request.query_params.get('ordering'):
-        #    if 'position_start_date' in self.request.query_params['ordering']:
-        #        base_query = base_query.filter(
-        #        position_start_date__gte=timezone.now().date()
-        #        )
-        filter_options = self.request.query_params
-        min_fee = filter_options.get("min_fee")
-        max_fee = filter_options.get("max_fee")
-        term = filter_options.get("term")
-        year = filter_options.get("year")
-        if min_fee is not None:
-            base_query = base_query.filter(fee__gte=min_fee)
-        if max_fee is not None:
-            base_query = base_query.filter(fee__lte=max_fee)
-        if term is not None:
-            if term == "summer":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=5
-                ).filter(position_start_date__month__lt=10)
-            elif term == "winter":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=10
-                ).filter(position_start_date__month__lte=12)
-            elif term == "spring":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=1
-                ).filter(position_start_date__month__lt=5)
-            else:
-                return Response("Invalid Term", status=status.HTTP_400_BAD_REQUEST)
-        if year is not None:
-            base_query = base_query.filter(position_start_date__year=year)
-        return base_query
 
 
 class StudentPositionFilteringViewSet(ListModelMixin, GenericViewSet):
