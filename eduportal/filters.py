@@ -1,30 +1,23 @@
-from django_filters.rest_framework import FilterSet, CharFilter, NumberFilter
+from django_filters import rest_framework as filters
 from .models import Position
 
 
-class ProfessorOwnPositionFilter(FilterSet):
-    term = CharFilter(method="filter_by_season")
-    fee__gte = NumberFilter(field_name="fee", lookup_expr="gte")
-    fee__lte = NumberFilter(field_name="fee", lookup_expr="lte")
+class ProfessorOwnPositionFilter(filters.FilterSet):
+    term = filters.CharFilter(method="filter_by_season")
+    fee = filters.NumberFilter()
+    fee__gte = filters.NumberFilter(field_name="fee", lookup_expr="gte")
+    fee__lte = filters.NumberFilter(field_name="fee", lookup_expr="lte")
 
     class Meta:
         model = Position
-        fields = ["position_start_date__year"]
+        fields = ["fee"]
 
     def filter_by_season(self, queryset, name, value):
-        if value == "spring":
-            return queryset.filter(
-                position_start_date__month__gte=1, position_start_date__month__lte=5
-            )
-        elif value == "summer":
-            return queryset.filter(
-                position_start_date__month__gte=6, position_start_date__month__lt=10
-            )
-        elif value == "winter":
-            return queryset.filter(
-                position_start_date__month__gte=10, position_start_date__month__lte=12
-            )
-        elif value is None:
-            return queryset
+        if value.lower() == "summer":
+            return queryset.filter(your_field__gt=5, your_field__lt=9)
+        elif value.lower() == "winter":
+            return queryset.filter(your_field__gt=9, your_field__lt=12)
+        elif value.lower() == "spring":
+            return queryset.filter(your_field__gt=1, your_field__lt=5)
         else:
-            return queryset.none()
+            return queryset
