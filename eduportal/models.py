@@ -49,7 +49,7 @@ class Student(models.Model):
     ]
     STATUS = [("A", "Active"), ("I", "Inactive"), ("G", "Graduated")]
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    university_name = models.CharField(max_length=255, null=True)
+    university = models.ForeignKey(University,on_delete=models.SET_NULL,blank=True,null=True)
     ssn = models.IntegerField(null=True)
     gender = models.CharField(max_length=1, choices=GENDER, null=True)
     nationality = models.CharField(max_length=50, null=True)
