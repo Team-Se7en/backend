@@ -115,7 +115,7 @@ class StudentGetListSerializer(serializers.ModelSerializer):
         # fields need to be changed
         fields = "__all__"
 
-    user = SimpleUserSerializer()
+    user = UserDetailSerializer()
 
 
 class OwnStudentProfileSerializer(serializers.ModelSerializer):
