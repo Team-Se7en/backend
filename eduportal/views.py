@@ -185,6 +185,8 @@ class ProfessorViewSet(
     http_method_names = ["get", "patch"]
     queryset = Professor.objects.select_related("user").all()
     serializer_class = ProfessorSerializer
+    filter_backends = [SearchFilter]
+    search_fields = ["user__first_name", "user__last_name"]
 
     @action(
         detail=False,
