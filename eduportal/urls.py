@@ -48,32 +48,61 @@ professors_router = routers.NestedSimpleRouter(router, "professors", lookup="pro
 
 professors_router.register(
     "CV/work-xps",
-    views.ProfessorWorkExperienceViewSet,
+    views.WorkExperienceViewSet,
     basename="professor-CV-xps",
 )
 professors_router.register(
     "CV/education",
-    views.ProfessorEducationHistoryViewSet,
+    views.EducationHistoryViewSet,
     basename="professor-education",
 )
 professors_router.register(
     "CV/projects",
-    views.ProfessorProjectExperienceViewSet,
+    views.ProjectExperienceViewSet,
     basename="professor-projects",
 )
 professors_router.register(
     "CV/hard-skills",
-    views.ProfessorHardSkillViewSet,
+    views.HardSkillViewSet,
     basename="professor-hard-skills",
+)
+
+students_router = routers.NestedSimpleRouter(router, "students", lookup="student")
+
+students_router.register(
+    "CV/work-xps",
+    views.WorkExperienceViewSet,
+    basename="student-CV-xps",
+)
+students_router.register(
+    "CV/education",
+    views.EducationHistoryViewSet,
+    basename="student-education",
+)
+students_router.register(
+    "CV/projects",
+    views.ProjectExperienceViewSet,
+    basename="student-projects",
+)
+students_router.register(
+    "CV/hard-skills",
+    views.HardSkillViewSet,
+    basename="student-hard-skills",
 )
 
 
 urlpatterns = [
     path(
         "professors/<int:professor_pk>/CV/",
-        views.ProfessorCVAPIView.as_view(),
+        views.CVAPIView.as_view(),
         name="professor-cv",
+    ),
+    path(
+        "students/<int:student_pk>/CV/",
+        views.CVAPIView.as_view(),
+        name="student-cv",
     ),
 ]
 urlpatterns += router.urls
 urlpatterns += professors_router.urls
+urlpatterns += students_router.urls

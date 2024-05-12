@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Prefetch, Min, Count
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from django.http import Http404
 from pprint import pprint
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -16,6 +17,7 @@ from .models import *
 from .permissions import *
 from .serializers import *
 from .utils.views import *
+from .filters import *
 
 User = get_user_model()
 
@@ -56,7 +58,7 @@ class LandingViewSet(GenericViewSet):
 
     def top_universities(self, request):
         top_universities = University.objects.order_by("rank")[:5]
-        serializer = UniversitySerializer(top_universities, many=True)
+        serializer = SimpleUniversitySerializer(top_universities, many=True)
 
         return serializer.data
 
@@ -87,7 +89,7 @@ class LandingViewSet(GenericViewSet):
 
         data = []
         for student in top_students:
-            serializer = StudentGetListSerializer(student)
+            serializer = StudentGetListSerializer(student, context={"request": request})
             data.append((serializer.data, student.accepted_requests_count))
 
         return data
@@ -134,7 +136,7 @@ class StudentGetListViewSet(
     queryset = Student.objects.select_related("user").all()
     serializer_class = StudentGetListSerializer
     filter_backends = [SearchFilter]
-    search_fields = ["user__first_name", "user__last_name", "university_name"]
+    search_fields = ["user__first_name", "user__last_name", "university__name"]
 
 
 class StudentProfileViewSet(
@@ -183,13 +185,6 @@ class ProfessorViewSet(
     http_method_names = ["get", "patch"]
     queryset = Professor.objects.select_related("user").all()
     serializer_class = ProfessorSerializer
-    filter_backends = [SearchFilter]
-    search_fields = [
-        "department",
-        "university__name",
-        "user__first_name",
-        "user__last_name",
-    ]
 
     @action(
         detail=False,
@@ -242,6 +237,18 @@ class TagListViewSet(
 
 
 class PositionViewSet(ModelViewSet):
+
+    filter_backends = [SearchFilter]
+    search_fields = [
+        "title",
+        "description",
+        "professor__user__first_name",
+        "professor__user__last_name",
+        "professor__department",
+        "professor__university__name",
+        "tags__label",
+    ]
+
     def get_serializer_class(self):
         action = self.action
         user = self.request.user
@@ -471,136 +478,42 @@ class AdmissionViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
 class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
-    filter_backends = [OrderingFilter]
+    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    filterset_class = ProfessorOwnPositionFilter
     ordering_fields = ["request_count", "fee", "position_start_date"]
+    queryset = Position.objects.all()
 
-    def get_queryset(self):
-        base_query = Position.objects.select_related("professor").filter(
-            professor__id=self.request.user.professor.id
+    def filter_queryset(self, queryset):
+        return (
+            super()
+            .filter_queryset(queryset)
+            .filter(professor__id=self.request.user.professor.id)
         )
-        # if self.request.query_params.get('ordering'):
-        #    if 'position_start_date' in self.request.query_params['ordering']:
-        #        base_query = base_query.filter(
-        #        position_start_date__gte=timezone.now().date()
-        #        )
-        filter_options = self.request.query_params
-        min_fee = filter_options.get("min_fee")
-        max_fee = filter_options.get("max_fee")
-        term = filter_options.get("term")
-        year = filter_options.get("year")
-        if min_fee is not None:
-            base_query = base_query.filter(fee__gte=min_fee)
-        if max_fee is not None:
-            base_query = base_query.filter(fee__lte=max_fee)
-        if term is not None:
-            if term == "summer":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=5
-                ).filter(position_start_date__month__lt=10)
-            elif term == "winter":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=10
-                ).filter(position_start_date__month__lte=12)
-            elif term == "spring":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=1
-                ).filter(position_start_date__month__lt=5)
-            else:
-                return Response("Invalid Term", status=status.HTTP_400_BAD_REQUEST)
-        if year is not None:
-            base_query = base_query.filter(position_start_date__year=year)
-        return base_query
 
 
 class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
-    filter_backends = [OrderingFilter]
+    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    filterset_class = ProfessorOtherPositionFilter
+    queryset = Position.objects.all()
     ordering_fields = ["fee", "position_start_date"]
 
-    def get_queryset(self):
-        base_query = Position.objects.select_related("professor").exclude(
-            professor__id=self.request.user.professor.id
+    def filter_queryset(self, queryset):
+        return (
+            super()
+            .filter_queryset(queryset)
+            .exclude(professor__id=self.request.user.professor.id)
         )
-        # if self.request.query_params.get('ordering'):
-        #    if 'position_start_date' in self.request.query_params['ordering']:
-        #        base_query = base_query.filter(
-        #        position_start_date__gte=timezone.now().date()
-        #        )
-        filter_options = self.request.query_params
-        min_fee = filter_options.get("min_fee")
-        max_fee = filter_options.get("max_fee")
-        term = filter_options.get("term")
-        year = filter_options.get("year")
-        if min_fee is not None:
-            base_query = base_query.filter(fee__gte=min_fee)
-        if max_fee is not None:
-            base_query = base_query.filter(fee__lte=max_fee)
-        if term is not None:
-            if term == "summer":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=5
-                ).filter(position_start_date__month__lt=10)
-            elif term == "winter":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=10
-                ).filter(position_start_date__month__lte=12)
-            elif term == "spring":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=1
-                ).filter(position_start_date__month__lt=5)
-            else:
-                return Response("Invalid Term", status=status.HTTP_400_BAD_REQUEST)
-        if year is not None:
-            base_query = base_query.filter(position_start_date__year=year)
-        return base_query
 
 
 class StudentPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = StudentPositionListSerializer
     permission_classes = [IsAuthenticated, IsStudent]
-    filter_backends = [OrderingFilter]
+    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    filterset_class = StudentPositionFilter
+    queryset = Position.objects.all()
     ordering_fields = ["fee", "position_start_date"]
-
-    def get_queryset(self):
-        base_query = Position.objects.all()
-        filter_options = self.request.query_params
-        min_fee = filter_options.get("min_fee")
-        max_fee = filter_options.get("max_fee")
-        term = filter_options.get("term")
-        year = filter_options.get("year")
-        is_filled = filter_options.get("is_filled")
-        if min_fee is not None:
-            base_query = base_query.filter(fee__gte=min_fee)
-        if max_fee is not None:
-            base_query = base_query.filter(fee__lte=max_fee)
-        if term is not None:
-            if term == "summer":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=5
-                ).filter(position_start_date__month__lt=10)
-            elif term == "winter":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=10
-                ).filter(position_start_date__month__lte=12)
-            elif term == "spring":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=1
-                ).filter(position_start_date__month__lt=5)
-            else:
-                return Response("Invalid Term", status=status.HTTP_400_BAD_REQUEST)
-        if year is not None:
-            base_query = base_query.filter(position_start_date__year=year)
-        if is_filled is not None:
-            if is_filled == "Y":
-                base_query = base_query.filter(filled=1)
-            elif is_filled == "N":
-                base_query = base_query.filter(filled=0)
-            else:
-                return Response(
-                    "Invalid filled value", status=status.HTTP_400_BAD_REQUEST
-                )
-        return base_query
 
 
 # Request Filtering Views ------------------------------------------------------
@@ -609,189 +522,119 @@ class StudentPositionFilteringViewSet(ListModelMixin, GenericViewSet):
 class StudentRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = RequestListSeralizer
     permission_classes = [IsAuthenticated, IsStudent, IsRequestOwner]
-    filter_backends = [OrderingFilter]
+    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    filterset_class = StudentRequestFilter
     ordering_fields = ["fee", "position_start_date", "date_applied"]
+    queryset = (
+        Request.objects.select_related("student").order_by("date_applied").reverse()
+    )
 
-    def get_queryset(self):
-        base_query = (
-            Request.objects.select_related("student")
+    def filter_queryset(self, queryset):
+        return (
+            super()
+            .filter_queryset(queryset)
             .filter(student__id=self.request.user.student.id)
-            .order_by("date_applied")
-            .reverse()
         )
-        filter_options = self.request.query_params
-        min_fee = filter_options.get("min_fee")
-        max_fee = filter_options.get("max_fee")
-        term = filter_options.get("term")
-        year = filter_options.get("year")
-        status = filter_options.get("status")
-        if min_fee is not None:
-            base_query = base_query.filter(fee__gte=min_fee)
-        if max_fee is not None:
-            base_query = base_query.filter(fee__lte=max_fee)
-        if term is not None:
-            if term == "summer":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=5
-                ).filter(position_start_date__month__lt=10)
-            elif term == "winter":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=10
-                ).filter(position_start_date__month__lte=12)
-            elif term == "spring":
-                base_query = base_query.filter(
-                    position_start_date__month__gte=1
-                ).filter(position_start_date__month__lt=5)
-            else:
-                return Response("Invalid Term", status=status.HTTP_400_BAD_REQUEST)
-        if year is not None:
-            base_query = base_query.filter(position_start_date__year=year)
-        if status is not None:
-            status_word = None
-            if status == "A":
-                status_word = "A"
-            elif status == "P":
-                status_word = "P"
-            elif status == "R":
-                status_word = "R"
-            if status_word is None:
-                return Request.objects.none()
-            base_query = base_query.filter(status=status_word)
-        return base_query
 
 
 class ProfessorRequestFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = RequestListSeralizer
     permission_classes = [IsAuthenticated, IsProfessor, IsRequestOwner]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ProfessorRequestFilter
+    queryset = (
+        Request.objects.select_related("position", "student")
+        .order_by("date_applied")
+        .reverse()
+    )
 
-    def get_queryset(self):
-        base_query = (
-            Request.objects.select_related("position", "student")
+    def filter_queryset(self, queryset):
+        return (
+            super()
+            .filter_queryset(queryset)
             .filter(position__professor__id=self.request.user.professor.id)
-            .order_by("date_applied")
-            .reverse()
         )
-        filter_options = self.request.query_params
-        status = filter_options.get("status")
-        major = filter_options.get("major")
-        if status is not None:
-            status_word = None
-            if status == "A":
-                status_word = "A"
-            elif status == "P":
-                status_word = "P"
-            elif status == "R":
-                status_word = "R"
-            if status_word is None:
-                return Request.objects.none()
-            base_query = base_query.filter(status=status_word)
-        if major is not None:
-            base_query = base_query.filter(student__major=major)
-        return base_query
 
 
 # CV Views ---------------------------------------------------------------------
 
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-
-
-class ProfessorCVAPIView(APIView):
+class CVAPIView(APIView):
     name = "CV API"
     serializer_class = CVSerializer
 
-    def get(self, request, professor_pk, format=None):
-        cv = self.get_object(professor_pk)
+    def get(self, request, format=None, **kwargs):
+        cv = self.get_object()
         serializer = CVSerializer(cv)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def patch(self, request, professor_pk, format=None):
-        cv = self.get_object(professor_pk)
+    def patch(self, request, format=None, **kwargs):
+        cv = self.get_object()
         serializer = CVSerializer(cv, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def get_object(self, professor_pk):
-        get_object_or_404(CV, professor_id=professor_pk)
-        return CV.objects.get(professor__id=professor_pk)
+    def get_object(self):
+        kws = self.kwargs
+        if "professor_pk" in kws:
+            return get_object_or_404(CV, professor_id=kws["professor_pk"])
+        if "student_pk" in kws:
+            return get_object_or_404(CV, student_id=kws["student_pk"])
+        raise Http404("No CV matches the given query.")
 
     def get_permissions(self):
         if self.request.method.lower() == "get":
             return [AllowAny()]
         if self.request.method.lower() in ["patch", "put", "delete"]:
-            return [IsProfessor(), IsCVOwner()]
+            return [IsAuthenticated(), IsCVOwner()]
         return [AllowAny()]
 
 
-class ProfessorWorkExperienceViewSet(viewsets.ModelViewSet):
+class BaseCVItemViewSet(viewsets.ModelViewSet):
+    def get_queryset(self):
+        kws = self.kwargs
+        if "professor_pk" in kws:
+            return self.model.objects.filter(cv__professor__pk=kws["professor_pk"])
+        elif "student_pk" in kws:
+            return self.model.objects.filter(cv__student__pk=kws["student_pk"])
+        else:
+            raise Http404("No CV matches the given query.")
+
+    def perform_create(self, serializer):
+        cv = self.get_cv()
+        serializer.save(cv=cv)
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsAuthenticated(), IsCVOwnerNested()]
+        return [AllowAny()]
+
+    def get_cv(self):
+        kws = self.kwargs
+        if "professor_pk" in kws:
+            return get_object_or_404(CV, professor_id=kws["professor_pk"])
+        if "student_pk" in kws:
+            return get_object_or_404(CV, student_id=kws["student_pk"])
+        raise Http404("No CV matches the given query.")
+
+
+class WorkExperienceViewSet(BaseCVItemViewSet):
     serializer_class = WorkExperienceSerializer
-
-    def get_queryset(self):
-        return WorkExperience.objects.filter(
-            cv__professor__pk=self.kwargs["professor_pk"]
-        )
-
-    def perform_create(self, serializer):
-        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
-        serializer.save(cv=cv)
-
-    def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [IsProfessor(), IsCVOwnerNested()]
-        return []
+    model = WorkExperience
 
 
-class ProfessorEducationHistoryViewSet(viewsets.ModelViewSet):
+class EducationHistoryViewSet(BaseCVItemViewSet):
     serializer_class = EducationHistorySerializer
-
-    def get_queryset(self):
-        return EducationHistory.objects.filter(
-            cv__professor__pk=self.kwargs["professor_pk"]
-        )
-
-    def perform_create(self, serializer):
-        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
-        serializer.save(cv=cv)
-
-    def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [IsProfessor(), IsCVOwnerNested()]
-        return []
+    model = EducationHistory
 
 
-class ProfessorProjectExperienceViewSet(viewsets.ModelViewSet):
+class ProjectExperienceViewSet(BaseCVItemViewSet):
     serializer_class = ProjectExperienceSerializer
-
-    def get_queryset(self):
-        return ProjectExperience.objects.filter(
-            cv__professor__pk=self.kwargs["professor_pk"]
-        )
-
-    def perform_create(self, serializer):
-        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
-        serializer.save(cv=cv)
-
-    def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [IsProfessor(), IsCVOwnerNested()]
-        return []
+    model = ProjectExperience
 
 
-class ProfessorHardSkillViewSet(viewsets.ModelViewSet):
+class HardSkillViewSet(BaseCVItemViewSet):
     serializer_class = HardSkillSerializer
-
-    def get_queryset(self):
-        return HardSkill.objects.filter(cv__professor__pk=self.kwargs["professor_pk"])
-
-    def perform_create(self, serializer):
-        cv = CV.objects.get(professor__pk=self.kwargs["professor_pk"])
-        serializer.save(cv=cv)
-
-    def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [IsProfessor(), IsCVOwnerNested()]
-        return []
+    model = HardSkill
