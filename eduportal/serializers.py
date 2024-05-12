@@ -112,11 +112,16 @@ class UniversitySerializer(serializers.ModelSerializer):
 class StudentGetListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        # fields need to be changed
         fields = "__all__"
 
     user = UserDetailSerializer()
 
+class StudentRequestGetListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = "__all__"
+
+    user = SimpleUserSerializer()
 
 class OwnStudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -415,7 +420,7 @@ class StudentRequestListSeralizer(serializers.ModelSerializer):
             "share_with_others",
         ]
 
-    student = StudentGetListSerializer()
+    student = StudentRequestGetListSerializer()
 
 
 class ProfessorRequestUpdateSeralizer(serializers.ModelSerializer):
