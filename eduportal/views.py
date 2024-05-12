@@ -354,6 +354,25 @@ class PositionViewSet(ModelViewSet):
 
 # Request Views ----------------------------------------------------------------
 
+class StudentRequestListSearchViewSet(ModelViewSet):
+    http_method_names = ["get"]
+    queryset = Request.objects.all()
+    serializer_class = StudentRequestListSeralizer
+    permission_classes = [IsAuthenticated, IsProfessor]
+    filter_backends = [SearchFilter]
+    search_fields = ["student__user__first_name","student__user__last_name"]
+
+    def filter_queryset(self, queryset):
+        if self.request.user.is_student:
+            queryset = queryset.filter(student__id=self.request.user.student.id)
+        else:
+            queryset = queryset.select_related("position").filter(
+                position__professor__id=self.request.user.professor.id
+            )
+        return super().filter_queryset(queryset)
+
+     
+
 
 class RequestViewSet(ModelViewSet):
     http_method_names = ["post", "get", "patch", "delete"]

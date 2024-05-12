@@ -13,6 +13,7 @@ router.register("professors", views.ProfessorViewSet)
 router.register("positions", views.PositionViewSet, basename="positions")
 router.register("tags", views.TagListViewSet)
 router.register("requests", views.RequestViewSet, basename="request")
+router.register("stud_requests", views.StudentRequestListSearchViewSet, basename="stud_request")
 router.register("admissions", views.AdmissionViewSet, basename="admission")
 router.register("userinfo", views.UserInfoViewSet, basename="userinfo")
 router.register(
