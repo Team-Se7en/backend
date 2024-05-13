@@ -121,7 +121,7 @@ class Request(models.Model):
     position = models.ForeignKey(Position, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     status = models.CharField(
-        max_length=1, choices=REQUEST_STATUS, default="PP", blank=True
+        max_length=2, choices=REQUEST_STATUS, default="PP", blank=True
     )
     date_applied = models.DateTimeField(auto_now_add=True, null=True)
     # متنی که دانشجو در ریکوئست می‌نویسد

@@ -374,7 +374,7 @@ class StudentRequestListSearchViewSet(ModelViewSet):
 
 
 class RequestViewSet(ModelViewSet):
-    http_method_names = ["post", "get", "patch", "delete"]
+    http_method_names = ["post", "get", "delete"]
 
     def get_queryset(self):
         return Request.objects.all()
@@ -405,6 +405,72 @@ class RequestViewSet(ModelViewSet):
         if self.action == "list":
             return RequestListSeralizer
         return RequestListSeralizer
+
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[IsAuthenticated, IsProfessor, IsRequestOwner],
+    )
+    def professor_accept_request(self, request, *args, **kwargs):
+        request_id = kwargs["id"]
+        request_object = get_object_or_404(Request, request_id)
+        if request_object.status != "PP":
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        position = Position.objects.get(pk=request_object.position.id)
+        if position.filled == position.capacity:
+            return Response(
+                "This position is filled.", status=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
+        position.filled += 1
+        position.save()
+        request_object.status = "PA"
+        request_object.save()
+        return Response(status=status.HTTP_200_OK)
+    
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[IsAuthenticated, IsProfessor, IsRequestOwner],
+    )
+    def professor_reject_request(self, request, *args, **kwargs):
+        request_id = kwargs["id"]
+        request_object = get_object_or_404(Request, request_id)
+        if request_object.status != "PP":
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        request_object.status = "PR"
+        request_object.save()
+        return Response(status=status.HTTP_200_OK)
+    
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[IsAuthenticated, IsStudent, IsRequestOwner],
+    )
+    def student_reject_request(self, request, *args, **kwargs):
+        request_id = kwargs["id"]
+        request_object = get_object_or_404(Request, request_id)
+        if request_object.status != "PA":
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        position = Position.objects.get(pk=request_object.position.id)
+        position.filled -= 1
+        position.save()
+        request_object.status = "SR"
+        request_object.save()
+        return Response(status=status.HTTP_200_OK)
+    
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[IsAuthenticated, IsStudent, IsRequestOwner],
+    )
+    def student_accept_request(self, request, *args, **kwargs):
+        request_id = kwargs["id"]
+        request_object = get_object_or_404(Request, request_id)
+        if request_object.status != "PA":
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        request_object.status = "SA"
+        request_object.save()
+        return Response(status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         request_object = get_object_or_404(Request, pk=kwargs["pk"])
