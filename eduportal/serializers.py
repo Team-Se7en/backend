@@ -498,3 +498,11 @@ class HardSkillSerializer(serializers.ModelSerializer):
         exclude = [
             "cv",
         ]
+
+
+class LanguageSkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LanguageSkill
+        exclude = [
+            "cv",
+        ]

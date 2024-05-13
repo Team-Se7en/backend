@@ -690,7 +690,13 @@ class CVAPIView(APIView):
         return [AllowAny()]
 
 
-class BaseCVItemViewSet(viewsets.ModelViewSet):
+class BaseCVItemViewSet(
+    CreateModelMixin,
+    UpdateModelMixin,
+    ListModelMixin,
+    DestroyModelMixin,
+    GenericViewSet,
+):
     def get_queryset(self):
         kws = self.kwargs
         if "professor_pk" in kws:
@@ -736,3 +742,8 @@ class ProjectExperienceViewSet(BaseCVItemViewSet):
 class HardSkillViewSet(BaseCVItemViewSet):
     serializer_class = HardSkillSerializer
     model = HardSkill
+
+
+class LanguageSkillViewSet(BaseCVItemViewSet):
+    serializer_class = LanguageSkillSerializer
+    model = LanguageSkill

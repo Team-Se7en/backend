@@ -189,3 +189,12 @@ class HardSkill(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
     experience_time = models.IntegerField(choices=XPDurationChoices)
+
+
+class LanguageSkill(models.Model):
+    cv = models.ForeignKey(CV, on_delete=models.CASCADE, related_name="language_skills")
+    language = models.IntegerField(choices=LanguageChoices)
+    skill_level = models.FloatField(
+        validators=[MinValueValidator(0.0), MaxValueValidator(5.0)]
+    )
+
