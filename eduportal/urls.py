@@ -67,6 +67,11 @@ professors_router.register(
     views.HardSkillViewSet,
     basename="professor-hard-skills",
 )
+professors_router.register(
+    "CV/language-skills",
+    views.LanguageSkillViewSet,
+    basename="professor-language-skills",
+)
 
 students_router = routers.NestedSimpleRouter(router, "students", lookup="student")
 
@@ -89,6 +94,11 @@ students_router.register(
     "CV/hard-skills",
     views.HardSkillViewSet,
     basename="student-hard-skills",
+)
+students_router.register(
+    "CV/language-skills",
+    views.LanguageSkillViewSet,
+    basename="student-language-skills",
 )
 
 

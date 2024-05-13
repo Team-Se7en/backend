@@ -49,7 +49,9 @@ class Student(models.Model):
     ]
     STATUS = [("A", "Active"), ("I", "Inactive"), ("G", "Graduated")]
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    university = models.ForeignKey(University,on_delete=models.SET_NULL,blank=True,null=True)
+    university = models.ForeignKey(
+        University, on_delete=models.SET_NULL, blank=True, null=True
+    )
     ssn = models.IntegerField(null=True)
     gender = models.CharField(max_length=1, choices=GENDER, null=True)
     nationality = models.CharField(max_length=50, null=True)
@@ -184,3 +186,12 @@ class HardSkill(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
     experience_time = models.IntegerField(choices=XPDurationChoices)
+
+
+class LanguageSkill(models.Model):
+    cv = models.ForeignKey(CV, on_delete=models.CASCADE, related_name="language_skills")
+    language = models.IntegerField(choices=LanguageChoices)
+    skill_level = models.FloatField(
+        validators=[MinValueValidator(0.0), MaxValueValidator(5.0)]
+    )
+

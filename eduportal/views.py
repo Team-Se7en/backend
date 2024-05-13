@@ -354,13 +354,14 @@ class PositionViewSet(ModelViewSet):
 
 # Request Views ----------------------------------------------------------------
 
+
 class StudentRequestListSearchViewSet(ModelViewSet):
     http_method_names = ["get"]
     queryset = Request.objects.all()
     serializer_class = StudentRequestListSeralizer
     permission_classes = [IsAuthenticated, IsProfessor]
     filter_backends = [SearchFilter]
-    search_fields = ["student__user__first_name","student__user__last_name"]
+    search_fields = ["student__user__first_name", "student__user__last_name"]
 
     def filter_queryset(self, queryset):
         if self.request.user.is_student:
@@ -370,8 +371,6 @@ class StudentRequestListSearchViewSet(ModelViewSet):
                 position__professor__id=self.request.user.professor.id
             )
         return super().filter_queryset(queryset)
-
-     
 
 
 class RequestViewSet(ModelViewSet):
@@ -612,7 +611,13 @@ class CVAPIView(APIView):
         return [AllowAny()]
 
 
-class BaseCVItemViewSet(viewsets.ModelViewSet):
+class BaseCVItemViewSet(
+    CreateModelMixin,
+    UpdateModelMixin,
+    ListModelMixin,
+    DestroyModelMixin,
+    GenericViewSet,
+):
     def get_queryset(self):
         kws = self.kwargs
         if "professor_pk" in kws:
@@ -658,3 +663,8 @@ class ProjectExperienceViewSet(BaseCVItemViewSet):
 class HardSkillViewSet(BaseCVItemViewSet):
     serializer_class = HardSkillSerializer
     model = HardSkill
+
+
+class LanguageSkillViewSet(BaseCVItemViewSet):
+    serializer_class = LanguageSkillSerializer
+    model = LanguageSkill
