@@ -351,7 +351,6 @@ class PositionViewSet(ModelViewSet):
         serializer = ProfessorPositionDetailSerializer(position)
         return Response(serializer.data)
 
-
 # Request Views ----------------------------------------------------------------
 
 class StudentRequestListSearchViewSet(ModelViewSet):
@@ -501,6 +500,21 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     filterset_class = ProfessorOwnPositionFilter
     ordering_fields = ["request_count", "fee", "position_start_date"]
+    queryset = Position.objects.all()
+
+    def filter_queryset(self, queryset):
+        return (
+            super()
+            .filter_queryset(queryset)
+            .filter(professor__id=self.request.user.professor.id)
+        )
+    
+class ProfessorOwnPositionSearchViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = ProfessorPositionListSerializer
+    permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
+    filter_backends = [SearchFilter]
+    filterset_class = ProfessorOwnPositionFilter
+    search_fields = ["title","description"]
     queryset = Position.objects.all()
 
     def filter_queryset(self, queryset):

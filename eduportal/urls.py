@@ -22,6 +22,11 @@ router.register(
     basename="prof_own_position_filter",
 )
 router.register(
+    "prof_own_position_search",
+    views.ProfessorOwnPositionSearchViewSet,
+    basename="prof_own_position_search",
+)
+router.register(
     "prof_other_position_filter",
     views.ProfessorOtherPositionFilteringViewSet,
     basename="prof_other_position_filter",
