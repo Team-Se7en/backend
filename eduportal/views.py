@@ -351,7 +351,9 @@ class PositionViewSet(ModelViewSet):
         serializer = ProfessorPositionDetailSerializer(position)
         return Response(serializer.data)
 
+
 # Request Views ----------------------------------------------------------------
+
 
 class StudentRequestListSearchViewSet(ModelViewSet):
     http_method_names = ["get"]
@@ -359,7 +361,7 @@ class StudentRequestListSearchViewSet(ModelViewSet):
     serializer_class = StudentRequestListSeralizer
     permission_classes = [IsAuthenticated, IsProfessor]
     filter_backends = [SearchFilter]
-    search_fields = ["student__user__first_name","student__user__last_name"]
+    search_fields = ["student__user__first_name", "student__user__last_name"]
 
     def filter_queryset(self, queryset):
         if self.request.user.is_student:
@@ -369,8 +371,6 @@ class StudentRequestListSearchViewSet(ModelViewSet):
                 position__professor__id=self.request.user.professor.id
             )
         return super().filter_queryset(queryset)
-
-     
 
 
 class RequestViewSet(ModelViewSet):
@@ -456,7 +456,7 @@ class RequestViewSet(ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         saved_request = serializer.save()
-        position.request_count +=1
+        position.request_count += 1
         serializer = StudentCreateRequestSerializer(saved_request)
         return Response(serializer.data)
 
@@ -509,13 +509,14 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
             .filter_queryset(queryset)
             .filter(professor__id=self.request.user.professor.id)
         )
-    
+
+
 class ProfessorOwnPositionSearchViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
     filter_backends = [SearchFilter]
     filterset_class = ProfessorOwnPositionFilter
-    search_fields = ["title","description"]
+    search_fields = ["title", "description"]
     queryset = Position.objects.all()
 
     def filter_queryset(self, queryset):

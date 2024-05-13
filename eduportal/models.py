@@ -49,7 +49,9 @@ class Student(models.Model):
     ]
     STATUS = [("A", "Active"), ("I", "Inactive"), ("G", "Graduated")]
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    university = models.ForeignKey(University,on_delete=models.SET_NULL,blank=True,null=True)
+    university = models.ForeignKey(
+        University, on_delete=models.SET_NULL, blank=True, null=True
+    )
     ssn = models.IntegerField(null=True)
     gender = models.CharField(max_length=1, choices=GENDER, null=True)
     nationality = models.CharField(max_length=50, null=True)
@@ -109,14 +111,17 @@ class Position(models.Model):
 
 class Request(models.Model):
     REQUEST_STATUS = [
-        ("P", "Pending"),
-        ("R", "Rejected"),
-        ("A", "Accepted"),
+        ("SP", "Student Pending"),
+        ("SR", "Student Rejected"),
+        ("SA", "Student Accepted"),
+        ("PP", "Professor Pending"),
+        ("PR", "Professor Rejected"),
+        ("PA", "Professor Accepted"),
     ]
     position = models.ForeignKey(Position, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     status = models.CharField(
-        max_length=1, choices=REQUEST_STATUS, default="P", blank=True, null=True
+        max_length=1, choices=REQUEST_STATUS, default="PP", blank=True
     )
     date_applied = models.DateTimeField(auto_now_add=True, null=True)
     # متنی که دانشجو در ریکوئست می‌نویسد
