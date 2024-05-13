@@ -111,14 +111,17 @@ class Position(models.Model):
 
 class Request(models.Model):
     REQUEST_STATUS = [
-        ("P", "Pending"),
-        ("R", "Rejected"),
-        ("A", "Accepted"),
+        ("SP", "Student Pending"),
+        ("SR", "Student Rejected"),
+        ("SA", "Student Accepted"),
+        ("PP", "Professor Pending"),
+        ("PR", "Professor Rejected"),
+        ("PA", "Professor Accepted"),
     ]
     position = models.ForeignKey(Position, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     status = models.CharField(
-        max_length=1, choices=REQUEST_STATUS, default="P", blank=True, null=True
+        max_length=2, choices=REQUEST_STATUS, default="PP", blank=True
     )
     date_applied = models.DateTimeField(auto_now_add=True, null=True)
     # متنی که دانشجو در ریکوئست می‌نویسد

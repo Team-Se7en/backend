@@ -351,6 +351,7 @@ class PositionViewSet(ModelViewSet):
         serializer = ProfessorPositionDetailSerializer(position)
         return Response(serializer.data)
 
+
 # Request Views ----------------------------------------------------------------
 
 
@@ -373,7 +374,7 @@ class StudentRequestListSearchViewSet(ModelViewSet):
 
 
 class RequestViewSet(ModelViewSet):
-    http_method_names = ["post", "get", "patch", "delete"]
+    http_method_names = ["post", "get", "delete"]
 
     def get_queryset(self):
         return Request.objects.all()
@@ -383,8 +384,6 @@ class RequestViewSet(ModelViewSet):
             return [IsAuthenticated(), IsStudent()]
         if self.action == "list":
             return [IsAuthenticated()]
-        if self.action in ["partial_update", "update"]:
-            return [IsAuthenticated(), IsProfessor(), IsRequestOwner()]
         if self.action == "destroy":
             return [AllowNone()]
         if self.action == "retrieve":
@@ -394,8 +393,6 @@ class RequestViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action == "create":
             return StudentCreateRequestSerializer
-        if self.action in ["update", "partial_update"]:
-            return ProfessorRequestUpdateSeralizer
         if self.action == "retrieve":
             if self.request.user.is_student:
                 return StudentRequestDetailSerializer
@@ -404,6 +401,72 @@ class RequestViewSet(ModelViewSet):
         if self.action == "list":
             return RequestListSeralizer
         return RequestListSeralizer
+
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[IsAuthenticated, IsProfessor, IsRequestOwner],
+    )
+    def professor_accept_request(self, request, *args, **kwargs):
+        request_id = kwargs["id"]
+        request_object = get_object_or_404(Request, request_id)
+        if request_object.status != "PP":
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        position = Position.objects.get(pk=request_object.position.id)
+        if position.filled == position.capacity:
+            return Response(
+                "This position is filled.", status=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
+        position.filled += 1
+        position.save()
+        request_object.status = "PA"
+        request_object.save()
+        return Response(status=status.HTTP_200_OK)
+    
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[IsAuthenticated, IsProfessor, IsRequestOwner],
+    )
+    def professor_reject_request(self, request, *args, **kwargs):
+        request_id = kwargs["id"]
+        request_object = get_object_or_404(Request, request_id)
+        if request_object.status != "PP":
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        request_object.status = "PR"
+        request_object.save()
+        return Response(status=status.HTTP_200_OK)
+    
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[IsAuthenticated, IsStudent, IsRequestOwner],
+    )
+    def student_reject_request(self, request, *args, **kwargs):
+        request_id = kwargs["id"]
+        request_object = get_object_or_404(Request, request_id)
+        if request_object.status != "PA":
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        position = Position.objects.get(pk=request_object.position.id)
+        position.filled -= 1
+        position.save()
+        request_object.status = "SR"
+        request_object.save()
+        return Response(status=status.HTTP_200_OK)
+    
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[IsAuthenticated, IsStudent, IsRequestOwner],
+    )
+    def student_accept_request(self, request, *args, **kwargs):
+        request_id = kwargs["id"]
+        request_object = get_object_or_404(Request, request_id)
+        if request_object.status != "PA":
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        request_object.status = "SA"
+        request_object.save()
+        return Response(status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         request_object = get_object_or_404(Request, pk=kwargs["pk"])
@@ -438,7 +501,7 @@ class RequestViewSet(ModelViewSet):
                 "Request already exists", status=status.HTTP_400_BAD_REQUEST
             )
         position = Position.objects.get(pk=request.data.get("position_id"))
-        if position.capacity == 0:
+        if position.filled == 1:
             Response(
                 "This position is completed.", status=status.HTTP_405_METHOD_NOT_ALLOWED
             )
@@ -454,8 +517,9 @@ class RequestViewSet(ModelViewSet):
             },
         )
         serializer.is_valid(raise_exception=True)
-        position = serializer.save()
-        serializer = StudentCreateRequestSerializer(position)
+        saved_request = serializer.save()
+        position.request_count += 1
+        serializer = StudentCreateRequestSerializer(saved_request)
         return Response(serializer.data)
 
 
@@ -507,13 +571,14 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
             .filter_queryset(queryset)
             .filter(professor__id=self.request.user.professor.id)
         )
-    
+
+
 class ProfessorOwnPositionSearchViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
     filter_backends = [SearchFilter]
     filterset_class = ProfessorOwnPositionFilter
-    search_fields = ["title","description"]
+    search_fields = ["title", "description"]
     queryset = Position.objects.all()
 
     def filter_queryset(self, queryset):
