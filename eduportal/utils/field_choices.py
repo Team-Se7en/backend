@@ -59,3 +59,36 @@ class XPDurationChoices(models.IntegerChoices):
     LESS_THAN_A_YEAR = 1
     BETWEEN_1_AND_5_YEARS = 2
     MORE_THAN_5_YEARS = 3
+
+
+class LanguageChoices(models.IntegerChoices):
+    MANDARIN_CHINESE = 1
+    SPANISH = 2
+    ENGLISH = 3
+    HINDI = 4
+    BENGALI = 5
+    PORTUGUESE = 6
+    RUSSIAN = 7
+    JAPANESE = 8
+    WESTERN_PUNJABI = 9
+    MARATHI = 10
+    TELUGU = 11
+    WU_CHINESE = 12
+    TURKISH = 13
+    KOREAN = 14
+    FRENCH = 15
+    GERMAN = 16
+    VIETNAMESE = 17
+    TAMIL = 18
+    YUE_CHINESE = 19
+    URDU = 20
+    JAVANESE = 21
+    ITALIAN = 22
+    ARABIC = 23
+    GUJARATI = 24
+    PERSIAN = 25
+    BHOJPURI = 26
+    SOUTHERN_MIN = 27
+    HAKKA = 28
+    JINYU_CHINESE = 29
+    HAUSA = 30
