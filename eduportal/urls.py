@@ -13,12 +13,18 @@ router.register("professors", views.ProfessorViewSet)
 router.register("positions", views.PositionViewSet, basename="positions")
 router.register("tags", views.TagListViewSet)
 router.register("requests", views.RequestViewSet, basename="request")
+router.register("stud_requests", views.StudentRequestListSearchViewSet, basename="stud_request")
 router.register("admissions", views.AdmissionViewSet, basename="admission")
 router.register("userinfo", views.UserInfoViewSet, basename="userinfo")
 router.register(
     "prof_own_position_filter",
     views.ProfessorOwnPositionFilteringViewSet,
     basename="prof_own_position_filter",
+)
+router.register(
+    "prof_own_position_search",
+    views.ProfessorOwnPositionSearchViewSet,
+    basename="prof_own_position_search",
 )
 router.register(
     "prof_other_position_filter",

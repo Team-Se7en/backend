@@ -112,11 +112,16 @@ class UniversitySerializer(serializers.ModelSerializer):
 class StudentGetListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        # fields need to be changed
         fields = "__all__"
 
     user = UserDetailSerializer()
 
+class StudentRequestGetListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = "__all__"
+
+    user = SimpleUserSerializer()
 
 class OwnStudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -405,6 +410,17 @@ class RequestListSeralizer(serializers.ModelSerializer):
             "student",
             "share_with_others",
         ]
+
+
+class StudentRequestListSeralizer(serializers.ModelSerializer):
+    class Meta:
+        model = Request
+        exclude = [
+            "cover_letter",
+            "share_with_others",
+        ]
+
+    student = StudentRequestGetListSerializer()
 
 
 class ProfessorRequestUpdateSeralizer(serializers.ModelSerializer):

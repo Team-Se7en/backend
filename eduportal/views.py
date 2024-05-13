@@ -185,6 +185,8 @@ class ProfessorViewSet(
     http_method_names = ["get", "patch"]
     queryset = Professor.objects.select_related("user").all()
     serializer_class = ProfessorSerializer
+    filter_backends = [SearchFilter]
+    search_fields = ["user__first_name", "user__last_name"]
 
     @action(
         detail=False,
@@ -349,8 +351,26 @@ class PositionViewSet(ModelViewSet):
         serializer = ProfessorPositionDetailSerializer(position)
         return Response(serializer.data)
 
-
 # Request Views ----------------------------------------------------------------
+
+class StudentRequestListSearchViewSet(ModelViewSet):
+    http_method_names = ["get"]
+    queryset = Request.objects.all()
+    serializer_class = StudentRequestListSeralizer
+    permission_classes = [IsAuthenticated, IsProfessor]
+    filter_backends = [SearchFilter]
+    search_fields = ["student__user__first_name","student__user__last_name"]
+
+    def filter_queryset(self, queryset):
+        if self.request.user.is_student:
+            queryset = queryset.filter(student__id=self.request.user.student.id)
+        else:
+            queryset = queryset.select_related("position").filter(
+                position__professor__id=self.request.user.professor.id
+            )
+        return super().filter_queryset(queryset)
+
+     
 
 
 class RequestViewSet(ModelViewSet):
@@ -481,6 +501,21 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     filterset_class = ProfessorOwnPositionFilter
     ordering_fields = ["request_count", "fee", "position_start_date"]
+    queryset = Position.objects.all()
+
+    def filter_queryset(self, queryset):
+        return (
+            super()
+            .filter_queryset(queryset)
+            .filter(professor__id=self.request.user.professor.id)
+        )
+    
+class ProfessorOwnPositionSearchViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = ProfessorPositionListSerializer
+    permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
+    filter_backends = [SearchFilter]
+    filterset_class = ProfessorOwnPositionFilter
+    search_fields = ["title","description"]
     queryset = Position.objects.all()
 
     def filter_queryset(self, queryset):
