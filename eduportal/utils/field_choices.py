@@ -105,4 +105,9 @@ class LanguageChoices(models.IntegerChoices):
 
 
 class NotificationTypeChoices(models.IntegerChoices):
-    pass
+    STUDENT_CREATED_REQUEST = 1
+    PROFESSOR_ACCEPTED_REQUEST = 2
+    PROFESSOR_REJECTED_REQUEST = -2
+    STUDENT_ACCEPTED_REQUEST = 3
+    STUDENT_REJECTED_REQUEST = -3
+    NEW_TAGGED_POST = 4

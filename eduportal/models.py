@@ -1,7 +1,6 @@
-from typing import Iterable
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
@@ -64,6 +63,9 @@ class Student(models.Model):
     enrollment_date = models.DateField(null=True)
     status = models.CharField(max_length=1, choices=STATUS, null=True)
     major = models.CharField(max_length=4, choices=MAJORS, null=True)
+    interest_tags = models.ManyToManyField("Tag2")
+
+    notification_item = GenericRelation("NotificationItem", related_query_name="student")
 
 
 class Professor(models.Model):
@@ -99,6 +101,7 @@ class Tag2(models.Model):
     def __str__(self) -> str:
         return self.get_label_display()
 
+
 class Position(models.Model):
     title = models.CharField(max_length=63)
     description = models.TextField()
@@ -120,6 +123,8 @@ class Position(models.Model):
     position_end_date = models.DateField()
 
     fee = models.FloatField()
+
+    notification_item = GenericRelation("NotificationItem", related_query_name="position")
 
 
 class Request(models.Model):
@@ -218,21 +223,21 @@ class LanguageSkill(models.Model):
 # Notification models ----------------------------------------------------------
 
 
-# class Notification(models.Model):
-#     timestamp = models.DateTimeField(auto_now_add=True)
-#     read = models.BooleanField(default=False)
-#     notification_type = models.IntegerField(choices=NotificationTypeChoices)
-#     user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
+class Notification(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)
+    notification_type = models.IntegerField(choices=NotificationTypeChoices)
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
 
 
-# class NotificationItem(models.Model):
-#     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-#     object_id = models.PositiveIntegerField()
-#     content_object = GenericForeignKey("content_type", "object_id")
+class NotificationItem(models.Model):
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
 
-#     notifications = models.ManyToManyField(Notification, related_name="items")
+    notifications = models.ManyToManyField(Notification, related_name="items")
 
-#     class Meta:
-#         indexes = [
-#             models.Index(fields=["content_type", "object_id"]),
-#         ]
+    class Meta:
+        indexes = [
+            models.Index(fields=["content_type", "object_id"]),
+        ]

@@ -210,7 +210,7 @@ class ProfessorViewSet(
         positions = Position.objects.filter(professor=professor)
         positions = positions.select_related(
             "professor", "professor__user"
-        ).prefetch_related("tags")
+        ).prefetch_related("tags", "tags2")
         serializer = OwnerPositionListSerializer(positions, many=True)
         return Response(serializer.data)
 
@@ -222,7 +222,7 @@ class ProfessorViewSet(
         )[:5]
         positions = positions.select_related(
             "professor", "professor__user"
-        ).prefetch_related("tags")
+        ).prefetch_related("tags", "tags2")
         serializer = OwnerPositionListSerializer(positions, many=True)
         return Response(serializer.data)
 
@@ -287,7 +287,7 @@ class PositionViewSet(ModelViewSet):
 
         queryset = Position.objects.select_related(
             "professor", "professor__user"
-        ).prefetch_related("tags")
+        ).prefetch_related("tags", "tags2")
 
         if self.action == "list":
             queryset = queryset.exclude(professor__user__id=user.id)
@@ -388,6 +388,10 @@ class RequestViewSet(ModelViewSet):
             return [AllowNone()]
         if self.action == "retrieve":
             return [IsAuthenticated(), IsRequestOwner()]
+        if self.action.startswith("professor"):
+            return [IsAuthenticated(), IsProfessor(), IsRequestOwner()]
+        if self.action.startswith("student"):
+            return [IsAuthenticated(), IsStudent(), IsRequestOwner()]
         return [AllowNone()]
 
     def get_serializer_class(self):
@@ -408,8 +412,8 @@ class RequestViewSet(ModelViewSet):
         permission_classes=[IsAuthenticated, IsProfessor, IsRequestOwner],
     )
     def professor_accept_request(self, request, *args, **kwargs):
-        request_id = kwargs["id"]
-        request_object = get_object_or_404(Request, request_id)
+        request_id = int(kwargs["pk"])
+        request_object = get_object_or_404(Request, pk=request_id)
         if request_object.status != "PP":
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
         position = Position.objects.get(pk=request_object.position.id)
@@ -422,29 +426,29 @@ class RequestViewSet(ModelViewSet):
         request_object.status = "PA"
         request_object.save()
         return Response(status=status.HTTP_200_OK)
-    
+
     @action(
         detail=True,
         methods=["GET"],
         permission_classes=[IsAuthenticated, IsProfessor, IsRequestOwner],
     )
     def professor_reject_request(self, request, *args, **kwargs):
-        request_id = kwargs["id"]
-        request_object = get_object_or_404(Request, request_id)
+        request_id = int(kwargs["pk"])
+        request_object = get_object_or_404(Request, pk=request_id)
         if request_object.status != "PP":
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
         request_object.status = "PR"
         request_object.save()
         return Response(status=status.HTTP_200_OK)
-    
+
     @action(
         detail=True,
         methods=["GET"],
         permission_classes=[IsAuthenticated, IsStudent, IsRequestOwner],
     )
     def student_reject_request(self, request, *args, **kwargs):
-        request_id = kwargs["id"]
-        request_object = get_object_or_404(Request, request_id)
+        request_id = int(kwargs["pk"])
+        request_object = get_object_or_404(Request, pk=request_id)
         if request_object.status != "PA":
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
         position = Position.objects.get(pk=request_object.position.id)
@@ -453,15 +457,15 @@ class RequestViewSet(ModelViewSet):
         request_object.status = "SR"
         request_object.save()
         return Response(status=status.HTTP_200_OK)
-    
+
     @action(
         detail=True,
         methods=["GET"],
         permission_classes=[IsAuthenticated, IsStudent, IsRequestOwner],
     )
     def student_accept_request(self, request, *args, **kwargs):
-        request_id = kwargs["id"]
-        request_object = get_object_or_404(Request, request_id)
+        request_id = int(kwargs["pk"])
+        request_object = get_object_or_404(Request, pk=request_id)
         if request_object.status != "PA":
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
         request_object.status = "SA"
@@ -469,7 +473,7 @@ class RequestViewSet(ModelViewSet):
         return Response(status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
-        request_object = get_object_or_404(Request, pk=kwargs["pk"])
+        request_object = get_object_or_404(Request, pk=int(kwargs["pk"]))
         if request_object.student.user.id == request.user.id:
             return super().destroy(request, *args, **kwargs)
         else:
@@ -547,7 +551,7 @@ class AdmissionViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
             return StudentRequestUpdateSeralizer
 
     def update(self, request, *args, **kwargs):
-        request_object = get_object_or_404(Request, pk=kwargs["pk"])
+        request_object = get_object_or_404(Request, pk=int(kwargs["pk"]))
         if request_object.status != "A":
             return Response("Invalid admission.", status=status.HTTP_400_BAD_REQUEST)
         request_object.share_with_others = True
@@ -747,3 +751,52 @@ class HardSkillViewSet(BaseCVItemViewSet):
 class LanguageSkillViewSet(BaseCVItemViewSet):
     serializer_class = LanguageSkillSerializer
     model = LanguageSkill
+
+
+# Notification Views -----------------------------------------------------------
+
+
+class NotificationViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated, IsNotificationOwner]
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user).prefetch_related(
+            "items"
+        )
+
+    @action(detail=False, methods=["GET"])
+    def all_count(self, request):
+        count = self.get_queryset().count()
+        return Response({"count": count})
+
+    @action(detail=False, methods=["GET"])
+    def new_count(self, request):
+        count = self.get_queryset().filter(read=False).count()
+        return Response({"count": count})
+
+    @action(detail=False, methods=["GET"])
+    def new_notifications(self, request):
+        notifications = self.get_queryset().filter(read=False)
+        serializer = self.get_serializer(notifications, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["GET"])
+    def all_notifications(self, request):
+        notifications = self.get_queryset()
+        serializer = self.get_serializer(notifications, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["GET"])
+    def read(self, request, pk=None):
+        notification = self.get_object()
+        notification.read = True
+        notification.save()
+        serializer = self.get_serializer(notification)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["GET"])
+    def read_all(self, request):
+        unread_notifications = self.get_queryset().filter(read=False)
+        unread_notifications.update(read=True)
+        return Response({"detail": "All notifications have been marked as read."})
