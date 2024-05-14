@@ -1,6 +1,8 @@
 from typing import Iterable
-from django.conf import settings
 from django.contrib import admin
+from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -8,6 +10,10 @@ from django_countries.fields import CountryField
 
 from .majors import *
 from .utils.field_choices import *
+
+
+UserModel = get_user_model()
+
 
 # Create your models here.
 
@@ -48,7 +54,7 @@ class Student(models.Model):
         ("R", "Rather not to say"),
     ]
     STATUS = [("A", "Active"), ("I", "Inactive"), ("G", "Graduated")]
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(UserModel, on_delete=models.CASCADE)
     university = models.ForeignKey(
         University, on_delete=models.SET_NULL, blank=True, null=True
     )
@@ -61,7 +67,7 @@ class Student(models.Model):
 
 
 class Professor(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(UserModel, on_delete=models.CASCADE)
     university = models.ForeignKey(
         University, models.SET_NULL, blank=True, null=True, related_name="professors"
     )
@@ -87,10 +93,17 @@ class Tag(models.Model):
         return self.label
 
 
+class Tag2(models.Model):
+    label = models.IntegerField(choices=TagChoices, primary_key=True)
+
+    def __str__(self) -> str:
+        return self.get_label_display()
+
 class Position(models.Model):
     title = models.CharField(max_length=63)
     description = models.TextField()
     tags = models.ManyToManyField(Tag, blank=True)
+    tags2 = models.ManyToManyField(Tag2)
     professor = models.ForeignKey(
         Professor, on_delete=models.PROTECT, related_name="positions"
     )
@@ -127,6 +140,9 @@ class Request(models.Model):
     # متنی که دانشجو در ریکوئست می‌نویسد
     cover_letter = models.TextField()
     share_with_others = models.BooleanField(default=False)
+
+
+# CV models --------------------------------------------------------------------
 
 
 class SoftSkill(models.Model):
@@ -198,3 +214,25 @@ class LanguageSkill(models.Model):
         validators=[MinValueValidator(0.0), MaxValueValidator(5.0)]
     )
 
+
+# Notification models ----------------------------------------------------------
+
+
+# class Notification(models.Model):
+#     timestamp = models.DateTimeField(auto_now_add=True)
+#     read = models.BooleanField(default=False)
+#     notification_type = models.IntegerField(choices=NotificationTypeChoices)
+#     user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
+
+
+# class NotificationItem(models.Model):
+#     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+#     object_id = models.PositiveIntegerField()
+#     content_object = GenericForeignKey("content_type", "object_id")
+
+#     notifications = models.ManyToManyField(Notification, related_name="items")
+
+#     class Meta:
+#         indexes = [
+#             models.Index(fields=["content_type", "object_id"]),
+#         ]
