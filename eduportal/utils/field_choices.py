@@ -1,6 +1,16 @@
 from django.db import models
 
 
+class TagChoices(models.IntegerChoices):
+    ARTIFICIAL_INTELLIGENCE = 1
+    DATA_SCIENCE = 2
+    MACHINE_LEARNING = 3
+    CYBER_SECURITY = 4
+    SOFTWARE_ENGINEERING = 5
+    CLOUD_COMPUTING = 6
+    QUANTUM_COMPUTING = 7
+
+
 class GenderChoices(models.IntegerChoices):
     MALE = 1
     FEMALE = 2
@@ -92,3 +102,12 @@ class LanguageChoices(models.IntegerChoices):
     HAKKA = 28
     JINYU_CHINESE = 29
     HAUSA = 30
+
+
+class NotificationTypeChoices(models.IntegerChoices):
+    STUDENT_CREATED_REQUEST = 1
+    PROFESSOR_ACCEPTED_REQUEST = 2
+    PROFESSOR_REJECTED_REQUEST = -2
+    STUDENT_ACCEPTED_REQUEST = 3
+    STUDENT_REJECTED_REQUEST = -3
+    NEW_TAGGED_POST = 4

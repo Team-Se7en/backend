@@ -41,9 +41,6 @@ class IsPositionOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
         return request.user.professor.id == obj.professor.id
 
-    def has_permission(self, request, view):
-        return request.method in SAFE_METHODS
-
 
 class AllowNone(BasePermission):
     def has_permission(self, request, view):
@@ -61,3 +58,8 @@ class IsRequestOwner(BasePermission):
             return bool(request.user.student.id == obj.student.id)
         else:
             return bool(request.user.professor.id == obj.position.professor.id)
+
+
+class IsNotificationOwner(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.user == request.user

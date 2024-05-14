@@ -46,8 +46,8 @@ router.register(
     views.ProfessorRequestFilteringViewSet,
     basename="prof_req_filtering",
 )
-
 router.register("landing", views.LandingViewSet, basename="landing")
+router.register("notifications", views.NotificationViewSet, basename="notification")
 
 
 professors_router = routers.NestedSimpleRouter(router, "professors", lookup="professor")

@@ -116,12 +116,14 @@ class StudentGetListSerializer(serializers.ModelSerializer):
 
     user = UserDetailSerializer()
 
+
 class StudentRequestGetListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = "__all__"
 
     user = SimpleUserSerializer()
+
 
 class OwnStudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -268,7 +270,7 @@ class BasePositionDetailSerializer(
 
     def get_university(self, pos: Position):
         try:
-            ser = UniversitySerializer(pos.professor.university)
+            ser = SimpleUniversitySerializer(pos.professor.university)
             return ser.data
         except:
             return None
@@ -506,3 +508,43 @@ class LanguageSkillSerializer(serializers.ModelSerializer):
         exclude = [
             "cv",
         ]
+
+
+# Notification Serializers -----------------------------------------------------
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    position = serializers.SerializerMethodField()
+    student = serializers.SerializerMethodField()
+    notification_type = serializers.CharField(source="get_notification_type_display")
+
+    class Meta:
+        model = Notification
+        exclude = []
+
+    def get_position(self, obj: Notification):
+        request = self.get_model_item(obj, Request)
+
+        if request:
+            return BasePositionDetailSerializer(request.position).data
+        else:
+            position = self.get_model_item(obj, Position)
+    
+            if position:
+                return position
+        return None
+
+    def get_student(self, obj: Notification):
+        request = self.get_model_item(obj, Request)
+
+        if request:
+            return SimpleStudentSerializer(request.student).data
+        return None
+
+    def get_model_item(self, obj: Notification, model):
+        pass
+        item: NotificationItem
+        for item in obj.items.all():
+            if isinstance(item.content_object, model):
+                return item.content_object
+        return None
