@@ -62,7 +62,7 @@ class Student(models.Model):
     enrollment_date = models.DateField(null=True)
     status = models.CharField(max_length=1, choices=STATUS, null=True)
     major = models.IntegerField(choices=MajorTypeChoices, null=True)
-    interest_tags = models.ManyToManyField("Tag2")
+    interest_tags = models.ManyToManyField("Tag2", related_name="students")
 
     notification_item = GenericRelation(
         "NotificationItem", related_query_name="student"
