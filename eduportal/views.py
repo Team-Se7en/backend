@@ -756,7 +756,12 @@ class LanguageSkillViewSet(BaseCVItemViewSet):
 # Notification Views -----------------------------------------------------------
 
 
-class NotificationViewSet(ListModelMixin, GenericViewSet):
+class NotificationViewSet(
+    RetrieveModelMixin,
+    DestroyModelMixin,
+    ListModelMixin,
+    GenericViewSet,
+):
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated, IsNotificationOwner]
 
@@ -800,3 +805,23 @@ class NotificationViewSet(ListModelMixin, GenericViewSet):
         unread_notifications = self.get_queryset().filter(read=False)
         unread_notifications.update(read=True)
         return Response({"detail": "All notifications have been marked as read."})
+
+    @action(detail=True, methods=["GET"])
+    def toggle_bookmark(self, request, pk=None):
+        notification = self.get_object()
+        notification.bookmarked = not notification.bookmarked
+        notification.save()
+        return Response(
+            {
+                "detail": f"Notification bookmarked status changed to {notification.bookmarked}."
+            }
+        )
+
+    @action(detail=False, methods=["GET"])
+    def delete_all(self, request):
+        notifications = self.get_queryset().filter(bookmarked=False)
+        count = notifications.count()
+        notifications.delete()
+        return Response(
+            {"detail": f"{count} unbookmarked notifications have been deleted."}
+        )
