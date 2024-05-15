@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 from django_countries.serializer_fields import CountryField as CountrySerializer
 from eduportal.models import Position
 from rest_framework import serializers
+from django.db.models import Avg
 
 from .models import *
 from .utils.views import get_user_type
@@ -112,6 +113,8 @@ class StudentGetListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = "__all__"
+
+    major = serializers.CharField(source="get_major_display")
 
     user = UserDetailSerializer()
 
@@ -558,7 +561,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             return NotifPositionSerializer(request.position).data
         else:
             position = self.get_model_item(obj, Position)
-    
+
             if position:
                 return NotifPositionSerializer(position).data
         return None
@@ -577,3 +580,44 @@ class NotificationSerializer(serializers.ModelSerializer):
             if isinstance(item.content_object, model):
                 return item.content_object
         return None
+
+
+# Top 5 Student Seralizer ------------------------------------------------------
+
+
+class UniversityLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = University
+        fields = ["name", "country", "city"]
+
+    country = CountrySerializer(name_only=True)
+
+
+class Top5StudentsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = ("student_name", "major", "university", "gpa")
+
+    university = UniversityLocationSerializer()
+    gpa = serializers.SerializerMethodField()
+    major = serializers.CharField(source="get_major_display")
+    student_name = serializers.SerializerMethodField()
+    
+
+    def get_student_name(self, student: Student):
+        return " ".join(
+            [student.user.first_name.lower(), student.user.last_name.lower()]
+        )
+
+    def get_gpa(self, student: Student):
+        student_cv = CV.objects.filter(student=student).prefetch_related(
+            "education_histories"
+        )
+        if not student_cv:
+            return 0
+        return (
+            student_cv.filter(education_histories__end_date__isnull=False)
+            .annotate(gpa_avg=Avg("education_histories__grade"))
+            .first()
+            .gpa_avg
+        )

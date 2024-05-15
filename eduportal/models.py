@@ -7,7 +7,6 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django_countries.fields import CountryField
 
-from .majors import *
 from .utils.field_choices import *
 
 
@@ -62,7 +61,7 @@ class Student(models.Model):
     nationality = models.CharField(max_length=50, null=True)
     enrollment_date = models.DateField(null=True)
     status = models.CharField(max_length=1, choices=STATUS, null=True)
-    major = models.CharField(max_length=4, choices=MAJORS, null=True)
+    major = models.IntegerField(choices=MajorTypeChoices, null=True)
     interest_tags = models.ManyToManyField("Tag2", related_name="students")
 
     notification_item = GenericRelation(
@@ -77,6 +76,7 @@ class Professor(models.Model):
     )
     department = models.CharField(max_length=255)
     birth_date = models.DateField(null=True, blank=True)
+    major = models.IntegerField(choices=MajorTypeChoices, null=True)
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}"
