@@ -65,7 +65,9 @@ class Student(models.Model):
     major = models.CharField(max_length=4, choices=MAJORS, null=True)
     interest_tags = models.ManyToManyField("Tag2")
 
-    notification_item = GenericRelation("NotificationItem", related_query_name="student")
+    notification_item = GenericRelation(
+        "NotificationItem", related_query_name="student"
+    )
 
 
 class Professor(models.Model):
@@ -124,7 +126,9 @@ class Position(models.Model):
 
     fee = models.FloatField()
 
-    notification_item = GenericRelation("NotificationItem", related_query_name="position")
+    notification_item = GenericRelation(
+        "NotificationItem", related_query_name="position"
+    )
 
 
 class Request(models.Model):
@@ -226,6 +230,7 @@ class LanguageSkill(models.Model):
 class Notification(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)
+    bookmarked = models.BooleanField(default=False)
     notification_type = models.IntegerField(choices=NotificationTypeChoices)
     user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
 
