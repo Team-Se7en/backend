@@ -791,9 +791,15 @@ class NotificationViewSet(
         notifications = self.get_queryset()
         serializer = self.get_serializer(notifications, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=["GET"])
+    def bookmarked_notifications(self, request):
+        notifications = self.get_queryset().filter(bookmarked=True)
+        serializer = self.get_serializer(notifications, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["GET"])
-    def read(self, request, pk=None):
+    def mark_as_read(self, request, pk=None):
         notification = self.get_object()
         notification.read = True
         notification.save()

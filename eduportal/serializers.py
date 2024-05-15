@@ -32,7 +32,6 @@ class SimpleStudentSerializer(
         model = Student
         fields = "__all__"
 
-
 class SimpleUserSerializer(
     serializers.ModelSerializer,
 ):
@@ -513,6 +512,36 @@ class LanguageSkillSerializer(serializers.ModelSerializer):
 # Notification Serializers -----------------------------------------------------
 
 
+class NotifPositionSerializer(serializers.ModelSerializer):
+    university_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Position
+        exclude = []
+    
+    def get_university_name(self, obj: Position):
+        try:
+            return obj.professor.university.name
+        except:
+            return None
+
+class NotifStudentSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    university_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Student
+        exclude = []
+
+    def get_name(self, obj: Student):
+        return f"{obj.user.first_name} {obj.user.last_name}"
+        
+    def get_university_name(self, obj: Student):
+        try:
+            return obj.university.name
+        except:
+            return None
+
 class NotificationSerializer(serializers.ModelSerializer):
     position = serializers.SerializerMethodField()
     student = serializers.SerializerMethodField()
@@ -526,7 +555,7 @@ class NotificationSerializer(serializers.ModelSerializer):
         request = self.get_model_item(obj, Request)
 
         if request:
-            return BasePositionDetailSerializer(request.position).data
+            return NotifPositionSerializer(request.position).data
         else:
             position = self.get_model_item(obj, Position)
     
@@ -538,7 +567,7 @@ class NotificationSerializer(serializers.ModelSerializer):
         request = self.get_model_item(obj, Request)
 
         if request:
-            return SimpleStudentSerializer(request.student).data
+            return NotifStudentSerializer(request.student).data
         return None
 
     def get_model_item(self, obj: Notification, model):
