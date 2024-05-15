@@ -576,7 +576,9 @@ class Top5StudentsSerializer(serializers.ModelSerializer):
         return student.get_major_display()
 
     def get_student_name(self, student: Student):
-        return " ".join([student.user.first_name, student.user.last_name])
+        return " ".join(
+            [student.user.first_name.lower(), student.user.last_name.lower()]
+        )
 
     def get_gpa(self, student: Student):
         student_cv = CV.objects.filter(student=student).prefetch_related(
@@ -586,6 +588,7 @@ class Top5StudentsSerializer(serializers.ModelSerializer):
             return 0
         return (
             student_cv.filter(education_histories__end_date__isnull=False)
-            .annotate(gpa_avg=Avg("education_histories__grade"))[0]
+            .annotate(gpa_avg=Avg("education_histories__grade"))
+            .first()
             .gpa_avg
         )
