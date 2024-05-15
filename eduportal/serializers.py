@@ -560,7 +560,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             position = self.get_model_item(obj, Position)
     
             if position:
-                return position
+                return NotifPositionSerializer(position).data
         return None
 
     def get_student(self, obj: Notification):

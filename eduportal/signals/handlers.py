@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
-from django.db.models.signals import pre_save, post_save, post_delete
+from django.core.cache import cache
+from django.db.models.signals import pre_save, post_save, post_delete, m2m_changed
 from django.dispatch import receiver
 
 from eduportal.models import *
@@ -100,3 +101,50 @@ def create_student_response_notification(sender, instance, **kwargs):
             )
 
             notification_item.notifications.add(notif)
+
+
+@receiver(post_save, sender=Position)
+def mark_position_as_created(sender, instance, created, **kwargs):
+    if created:
+        created_positions = cache.get("created_positions", set())
+        created_positions.add(instance.id)
+        cache.set("created_positions", created_positions)
+
+
+@receiver(m2m_changed, sender=Position.tags2.through)
+def create_interested_students_notification(sender, instance, action, **kwargs):
+    if action == "post_add":
+        created_positions = cache.get("created_positions", set())
+        if instance.id in created_positions:
+            content_type = ContentType.objects.get_for_model(instance)
+
+            position_ni, created = NotificationItem.objects.get_or_create(
+                content_type=content_type, object_id=instance.id
+            )
+
+            tags = instance.tags2
+            notified = set()
+
+            for t in tags.all():
+                students = t.students
+
+                for s in students.all():
+                    if s.id not in notified:
+                        std_ct = ContentType.objects.get_for_model(s)
+                        std_ni, std_ni_created = NotificationItem.objects.get_or_create(
+                            content_type=std_ct, object_id=s.id
+                        )
+
+                        notif = Notification.objects.create(
+                            notification_type=NotificationTypeChoices.NEW_TAGGED_POST,
+                            user=s.user,
+                        )
+
+                        position_ni.notifications.add(notif)
+                        std_ni.notifications.add(notif)
+                        notified.add(s.id)
+
+            # Remove the instance from the set in the cache
+            created_positions.remove(instance.id)
+            cache.set("created_positions", created_positions)
+
