@@ -562,7 +562,7 @@ class AdmissionViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
 
 
 class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
-    serializer_class = ProfessorPositionListSerializer
+    serializer_class = ProfessorPositionFilterSerializer
     permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     filterset_class = ProfessorOwnPositionFilter
