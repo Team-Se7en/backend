@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Prefetch, Min, Count
+from django.db.models import Prefetch, Min, Count, Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.http import Http404
@@ -791,7 +791,7 @@ class NotificationViewSet(
         notifications = self.get_queryset()
         serializer = self.get_serializer(notifications, many=True)
         return Response(serializer.data)
-    
+
     @action(detail=False, methods=["GET"])
     def bookmarked_notifications(self, request):
         notifications = self.get_queryset().filter(bookmarked=True)
@@ -831,3 +831,30 @@ class NotificationViewSet(
         return Response(
             {"detail": f"{count} unbookmarked notifications have been deleted."}
         )
+
+
+# Top 5 Students ViewSet -------------------------------------------------------
+
+
+class Top5StudentsViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = Top5StudentsSerializer
+    permission_classes = [IsAuthenticated, IsProfessor]
+
+    def list(self, request, *args, **kwargs):
+        educations_with_date = EducationHistory.objects.exclude(end_date__isnull=True)
+
+        cvs_with_avg_grade = CV.objects.filter(
+            education_histories__in=educations_with_date
+        ).annotate(avg_grade=Avg("education_histories__grade"))
+
+        top_cvs = cvs_with_avg_grade.order_by("-avg_grade")[:5]
+
+        top_students = (
+            Student.objects.select_related("cv")
+            .filter(major=request.user.professor.major)
+            .filter(cv__in=top_cvs)
+        )
+
+        seralizer = Top5StudentsSerializer(top_students, many=True)
+
+        return Response(seralizer.data)
