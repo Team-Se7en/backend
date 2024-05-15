@@ -843,9 +843,12 @@ class Top5StudentsViewSet(ListModelMixin, GenericViewSet):
     def list(self, request, *args, **kwargs):
         educations_with_date = EducationHistory.objects.exclude(end_date__isnull=True)
 
-        cvs_with_avg_grade = CV.objects.filter(
-            education_histories__in=educations_with_date
-        ).annotate(avg_grade=Avg("education_histories__grade"))
+        cvs_with_avg_grade = (
+            CV.objects.select_related("student")
+            .filter(student__major=request.user.professor.major)
+            .filter(education_histories__in=educations_with_date)
+            .annotate(avg_grade=Avg("education_histories__grade"))
+        )
 
         top_cvs = cvs_with_avg_grade.order_by("-avg_grade")[:5]
 
@@ -856,5 +859,23 @@ class Top5StudentsViewSet(ListModelMixin, GenericViewSet):
         )
 
         seralizer = Top5StudentsSerializer(top_students, many=True)
+
+        return Response(seralizer.data)
+
+
+class Top5ProfessorsViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = Top5ProfessorsSerializer
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def list(self, request, *args, **kwargs):
+
+        top_professors = (
+            Professor.objects.filter(major=request.user.student.major)
+            .select_related("cv")
+            .annotate(project_num=Count("cv__project_experiences"))
+            .order_by("-project_num")[:5]
+        )
+
+        seralizer = Top5ProfessorsSerializer(top_professors, many=True)
 
         return Response(seralizer.data)
