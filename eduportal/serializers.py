@@ -33,6 +33,7 @@ class SimpleStudentSerializer(
         model = Student
         fields = "__all__"
 
+
 class SimpleUserSerializer(
     serializers.ModelSerializer,
 ):
@@ -521,12 +522,13 @@ class NotifPositionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Position
         exclude = []
-    
+
     def get_university_name(self, obj: Position):
         try:
             return obj.professor.university.name
         except:
             return None
+
 
 class NotifStudentSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
@@ -538,12 +540,13 @@ class NotifStudentSerializer(serializers.ModelSerializer):
 
     def get_name(self, obj: Student):
         return f"{obj.user.first_name} {obj.user.last_name}"
-        
+
     def get_university_name(self, obj: Student):
         try:
             return obj.university.name
         except:
             return None
+
 
 class NotificationSerializer(serializers.ModelSerializer):
     position = serializers.SerializerMethodField()
@@ -602,11 +605,13 @@ class Top5StudentsSerializer(serializers.ModelSerializer):
     gpa = serializers.SerializerMethodField()
     major = serializers.CharField(source="get_major_display")
     student_name = serializers.SerializerMethodField()
-    
 
     def get_student_name(self, student: Student):
         return " ".join(
-            [student.user.first_name.lower(), student.user.last_name.lower()]
+            [
+                student.user.first_name.lower().capitalize(),
+                student.user.last_name.lower().capitalize(),
+            ]
         )
 
     def get_gpa(self, student: Student):
@@ -620,4 +625,29 @@ class Top5StudentsSerializer(serializers.ModelSerializer):
             .annotate(gpa_avg=Avg("education_histories__grade"))
             .first()
             .gpa_avg
+        )
+
+
+class Top5ProfessorsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Professor
+        fields = (
+            "professor_name",
+            "major",
+            "university",
+            "department",
+            "project_num",
+        )
+
+    project_num = serializers.IntegerField()
+    university = UniversityLocationSerializer()
+    major = serializers.CharField(source="get_major_display")
+    professor_name = serializers.SerializerMethodField()
+
+    def get_professor_name(self, professor: Professor):
+        return " ".join(
+            [
+                professor.user.first_name.lower().capitalize(),
+                professor.user.last_name.lower().capitalize(),
+            ]
         )
