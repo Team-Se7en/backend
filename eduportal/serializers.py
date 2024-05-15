@@ -554,41 +554,34 @@ class NotificationSerializer(serializers.ModelSerializer):
 # Top 5 Student Seralizer ------------------------------------------------------
 
 
+class UniversityLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = University
+        fields = ["name", "country", "city"]
+
+    country = CountrySerializer(name_only=True)
+
+
 class Top5StudentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ("major", "university_name", "city", "country", "gpa")
+        fields = ("student_name", "major", "university", "gpa")
 
-    university_name = serializers.SerializerMethodField(
-        method_name="get_university_name"
-    )
-    city = serializers.SerializerMethodField(method_name="get_city")
-    country = serializers.SerializerMethodField(method_name="get_country")
+    university = UniversityLocationSerializer()
     gpa = serializers.SerializerMethodField()
+    student_name = serializers.SerializerMethodField()
+
+    def get_student_name(self, student: Student):
+        return " ".join([student.user.first_name, student.user.last_name])
 
     def get_gpa(self, student: Student):
-        student_cv = CV.objects.filter(student=student)
-        if student_cv[0] is None:
-            return 0
-        if student_cv[0].education_histories is None:
+        student_cv = CV.objects.filter(student=student).prefetch_related(
+            "education_histories"
+        )
+        if not student_cv:
             return 0
         return (
             student_cv.filter(education_histories__end_date__isnull=False)
             .annotate(gpa_avg=Avg("education_histories__grade"))[0]
             .gpa_avg
         )
-
-    def get_university_name(self, student: Student):
-        if student.university is not None:
-            return student.university.name
-        return None
-
-    def get_city(self, student: Student):
-        if student.university is not None:
-            return student.university.city
-        return None
-
-    def get_country(self, student: Student):
-        if student.university is not None:
-            return student.university.country
-        return None
