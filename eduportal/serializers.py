@@ -569,7 +569,11 @@ class Top5StudentsSerializer(serializers.ModelSerializer):
 
     university = UniversityLocationSerializer()
     gpa = serializers.SerializerMethodField()
+    major = serializers.SerializerMethodField()
     student_name = serializers.SerializerMethodField()
+
+    def get_major(self, student: Student):
+        return student.get_major_display()
 
     def get_student_name(self, student: Student):
         return " ".join([student.user.first_name, student.user.last_name])
