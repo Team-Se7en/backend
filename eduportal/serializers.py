@@ -112,6 +112,7 @@ class LandingUniversitySerializer(serializers.ModelSerializer):
         model = University
         fields = [
             "id",
+            "name",
             "icon",
             "rank",
         ]
@@ -142,14 +143,7 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         # fields need to be changed
-        fields = [
-            "university",
-            "student",
-            "user",
-            "ssn",
-            "major",
-            "profile_image"
-        ]
+        fields = ["university", "student", "user", "ssn", "major", "profile_image"]
 
     user = SimpleUserSerializer()
     student = serializers.SerializerMethodField(method_name="username")
@@ -176,11 +170,18 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
 class LandingStudentSerializer(serializers.ModelSerializer):
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
+    rank = serializers.IntegerField()
     accepted_request_count = serializers.IntegerField()
 
     class Meta:
         model = Student
-        fields = ["id", "first_name", "last_name", "accepted_request_count"]
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "rank",
+            "accepted_request_count",
+        ]
 
     def get_first_name(self, obj: Student):
         return obj.user.first_name
@@ -206,7 +207,7 @@ class ProfessorSerializer(
             "department",
             "birth_date",
             "major",
-            "profile_image"
+            "profile_image",
         ]
 
     def update(self, instance, validated_data):
@@ -230,11 +231,18 @@ class ProfessorSerializer(
 class LandingProfessorSerializer(serializers.ModelSerializer):
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
+    rank = serializers.IntegerField()
     accepted_request_count = serializers.IntegerField()
 
     class Meta:
         model = Professor
-        fields = ["id", "first_name", "last_name", "accepted_request_count"]
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "rank",
+            "accepted_request_count",
+        ]
 
     def get_first_name(self, obj: Professor):
         return obj.user.first_name
@@ -416,9 +424,9 @@ class PositionUpdateSerializer(
     def validate(self, data):
         errors = {}
         if data["position_end_date"] < data["position_start_date"]:
-            errors[
-                "position_end_date"
-            ] = "Position end date must be after position start date."
+            errors["position_end_date"] = (
+                "Position end date must be after position start date."
+            )
         if data["end_date"] < data["start_date"]:
             errors["end_date"] = "end date must be after start date."
         if errors:
