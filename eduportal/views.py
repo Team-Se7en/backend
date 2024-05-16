@@ -78,7 +78,7 @@ class LandingViewSet(GenericViewSet):
     def top_students(self, request):
         students = Student.objects.annotate(
             accepted_request_count=models.Count(
-                "request", filter=models.Q(request__status="A")
+                "request", filter=models.Q(request__status="PA")
             )
         )
 
@@ -96,7 +96,7 @@ class LandingViewSet(GenericViewSet):
     def get_top_professors(self):
         professors = Professor.objects.annotate(
             accepted_request_count=models.Count(
-                "positions__request", filter=models.Q(positions__request__status="A")
+                "positions__request", filter=models.Q(positions__request__status="SA")
             )
         )
 
