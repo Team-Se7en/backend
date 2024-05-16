@@ -107,6 +107,16 @@ class UniversitySerializer(serializers.ModelSerializer):
         return BasePositionListSerializer(poses, many=True).data
 
 
+class LandingUniversitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = University
+        fields = [
+            "id",
+            "icon",
+            "rank",
+        ]
+
+
 # Student Serializers ----------------------------------------------------------
 
 
@@ -163,6 +173,22 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class LandingStudentSerializer(serializers.ModelSerializer):
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+    accepted_request_count = serializers.IntegerField()
+
+    class Meta:
+        model = Student
+        fields = ["id", "first_name", "last_name", "accepted_request_count"]
+
+    def get_first_name(self, obj: Student):
+        return obj.user.first_name
+
+    def get_last_name(self, obj: Student):
+        return obj.user.last_name
+
+
 # Professor Serializers --------------------------------------------------------
 
 
@@ -199,6 +225,22 @@ class ProfessorSerializer(
                 exclude = ()
 
         return super().update(instance, validated_data)
+
+
+class LandingProfessorSerializer(serializers.ModelSerializer):
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+    accepted_request_count = serializers.IntegerField()
+
+    class Meta:
+        model = Professor
+        fields = ["id", "first_name", "last_name", "accepted_request_count"]
+
+    def get_first_name(self, obj: Professor):
+        return obj.user.first_name
+
+    def get_last_name(self, obj: Professor):
+        return obj.user.last_name
 
 
 # Position Serializers ---------------------------------------------------------
@@ -374,9 +416,9 @@ class PositionUpdateSerializer(
     def validate(self, data):
         errors = {}
         if data["position_end_date"] < data["position_start_date"]:
-            errors["position_end_date"] = (
-                "Position end date must be after position start date."
-            )
+            errors[
+                "position_end_date"
+            ] = "Position end date must be after position start date."
         if data["end_date"] < data["start_date"]:
             errors["end_date"] = "end date must be after start date."
         if errors:
@@ -400,16 +442,17 @@ class ProfessorPositionFilterSerializer(serializers.ModelSerializer):
             "university_name",
             "fee",
             "capacity",
-            'request_count',
-            'tags'
+            "request_count",
+            "tags",
         )
 
     university_name = serializers.SerializerMethodField()
 
-    def get_university_name(self,pos:Position):
+    def get_university_name(self, pos: Position):
         if pos.professor.university is not None:
             return pos.professor.university.name
         return None
+
 
 # Request Serializers ----------------------------------------------------------
 

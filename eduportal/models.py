@@ -132,7 +132,7 @@ class Position(models.Model):
     title = models.CharField(max_length=63)
     description = models.TextField()
     tags = models.ManyToManyField(Tag, blank=True)
-    tags2 = models.ManyToManyField(Tag2)
+    tags2 = models.ManyToManyField(Tag2, blank=True)
     professor = models.ForeignKey(
         Professor, on_delete=models.PROTECT, related_name="positions"
     )
