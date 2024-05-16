@@ -63,10 +63,22 @@ class Student(models.Model):
     status = models.CharField(max_length=1, choices=STATUS, null=True)
     major = models.IntegerField(choices=MajorTypeChoices, null=True)
     interest_tags = models.ManyToManyField("Tag2", related_name="students")
+    profile_image = models.ImageField(upload_to="profileImage/", null=True)
 
     notification_item = GenericRelation(
         "NotificationItem", related_query_name="student"
     )
+
+    def delete(self, *args, **kwargs):
+        self.profile_image.delete()
+        super().delete(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            old_self = Student.objects.get(pk=self.pk)
+            if old_self.profile_image.name != self.profile_image.name:
+                old_self.profile_image.delete(save=False)
+        super().save(*args, **kwargs)
 
 
 class Professor(models.Model):
@@ -77,6 +89,18 @@ class Professor(models.Model):
     department = models.CharField(max_length=255)
     birth_date = models.DateField(null=True, blank=True)
     major = models.IntegerField(choices=MajorTypeChoices, null=True)
+    profile_image = models.ImageField(upload_to="profileImage/", null=True)
+
+    def delete(self, *args, **kwargs):
+        self.profile_image.delete()
+        super().delete(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            old_self = Professor.objects.get(pk=self.pk)
+            if old_self.profile_image.name != self.profile_image.name:
+                old_self.profile_image.delete(save=False)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}"

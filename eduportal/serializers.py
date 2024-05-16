@@ -142,10 +142,18 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         # fields need to be changed
-        fields = ["university", "student", "user", "ssn", "major"]
+        fields = [
+            "university",
+            "student",
+            "user",
+            "ssn",
+            "major",
+            "profile_image"
+        ]
 
     user = SimpleUserSerializer()
     student = serializers.SerializerMethodField(method_name="username")
+    profile_image = serializers.ImageField()
 
     def username(self, student: Student):
         return student.user.id
@@ -160,10 +168,7 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
             user_serializer.is_valid(raise_exception=True)
             user_serializer.save()
         except KeyError:
-
-            class Meta:
-                model = Tag
-                exclude = ()
+            pass
 
         return super().update(instance, validated_data)
 
@@ -194,7 +199,15 @@ class ProfessorSerializer(
 
     class Meta:
         model = Professor
-        fields = ["id", "user", "university", "department", "birth_date", "major"]
+        fields = [
+            "id",
+            "user",
+            "university",
+            "department",
+            "birth_date",
+            "major",
+            "profile_image"
+        ]
 
     def update(self, instance, validated_data):
         try:
