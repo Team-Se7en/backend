@@ -35,7 +35,14 @@ class LandingViewSet(GenericViewSet):
         top_students = self.get_top_students(3)
         random_positions = self.get_random_positions(top_professors, 4)
 
-        unis = list(University.objects.only("id", "icon", "rank").order_by("rank"))
+        unis = list(
+            University.objects.only(
+                "id",
+                "name",
+                "icon",
+                "rank",
+            ).order_by("rank")
+        )
         top_universities = unis[:3]
         random_universities = self.sample_random_universities(unis, 12)
 
@@ -89,22 +96,39 @@ class LandingViewSet(GenericViewSet):
         return ser.data
 
     def get_top_professors(self, count):
-        professors = Professor.objects.annotate(
-            accepted_request_count=models.Count(
-                "positions__request", filter=models.Q(positions__request__status="SA")
+        professors = (
+            Professor.objects.annotate(
+                accepted_request_count=models.Count(
+                    "positions__request",
+                    filter=models.Q(positions__request__status="SA"),
+                )
             )
-        ).select_related("user")
+            .select_related("user")
+            .order_by("-accepted_request_count")[:count]
+        )
 
-        return professors.order_by("-accepted_request_count")[:count]
+        professors = list(professors)
+        for i, professor in enumerate(professors, start=1):
+            professor.rank = i
+
+        return professors
 
     def get_top_students(self, count):
-        students = Student.objects.annotate(
-            accepted_request_count=models.Count(
-                "request", filter=models.Q(request__status__in=["PA", "SA", "SR"])
+        students = (
+            Student.objects.annotate(
+                accepted_request_count=models.Count(
+                    "request", filter=models.Q(request__status__in=["PA", "SA", "SR"])
+                )
             )
-        ).select_related("user")
+            .select_related("user")
+            .order_by("-accepted_request_count")[:count]
+        )
 
-        return students.order_by("-accepted_request_count")[:count]
+        students = list(students)
+        for i, student in enumerate(students, start=1):
+            student.rank = i
+
+        return students
 
     def sample_random_universities(self, universities, count):
         if len(universities) >= count:
