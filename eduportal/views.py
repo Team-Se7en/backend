@@ -1,9 +1,10 @@
+from pprint import pprint
+from random import sample
 from django.contrib.auth import get_user_model
 from django.db.models import Prefetch, Min, Count, Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.http import Http404
-from pprint import pprint
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -36,6 +37,12 @@ class LandingViewSet(GenericViewSet):
                 "top_universities": self.top_universities(request),
                 "top_professors": self.top_professors(request),
                 "top_students": self.top_students(request),
+                "professor_view_positions": self.random_top_positions(
+                    request, ProfessorPositionListSerializer
+                ),
+                "student_view_positions": self.random_top_positions(
+                    request, StudentPositionListSerializer
+                ),
             }
         )
 
@@ -57,42 +64,60 @@ class LandingViewSet(GenericViewSet):
         return growth
 
     def top_universities(self, request):
-        top_universities = University.objects.order_by("rank")[:5]
-        serializer = SimpleUniversitySerializer(top_universities, many=True)
+        top_universities = University.objects.order_by("rank")[:8]
+        serializer = LandingUniversitySerializer(top_universities, many=True)
 
         return serializer.data
 
     def top_professors(self, request):
-        professors = Professor.objects.annotate(
-            accepted_requests_count=models.Count(
-                "positions__request", filter=models.Q(positions__request__status="A")
-            )
-        ).select_related("user")
+        top_professors = self.get_top_professors()
+        serializer = LandingProfessorSerializer(top_professors, many=True)
 
-        top_professors = professors.order_by("-accepted_requests_count")[:5]
-
-        data = []
-        for prof in top_professors:
-            serializer = ProfessorSerializer(prof)
-            data.append((serializer.data, prof.accepted_requests_count))
-
-        return data
+        return serializer.data
 
     def top_students(self, request):
         students = Student.objects.annotate(
-            accepted_requests_count=models.Count(
+            accepted_request_count=models.Count(
                 "request", filter=models.Q(request__status="A")
             )
-        ).select_related("user")
+        )
 
-        top_students = students.order_by("-accepted_requests_count")[:5]
+        top_students = students.order_by("-accepted_request_count")[:3]
+        serializer = LandingStudentSerializer(top_students, many=True)
 
-        data = []
-        for student in top_students:
-            serializer = StudentGetListSerializer(student, context={"request": request})
-            data.append((serializer.data, student.accepted_requests_count))
+        return serializer.data
 
-        return data
+    def random_top_positions(self, request, ser):
+        positions = self.get_random_top_positions()
+        serializer = ser(positions, many=True)
+
+        return serializer.data
+
+    def get_top_professors(self):
+        professors = Professor.objects.annotate(
+            accepted_request_count=models.Count(
+                "positions__request", filter=models.Q(positions__request__status="A")
+            )
+        )
+
+        return professors.order_by("-accepted_request_count")[:3]
+
+    def get_random_top_positions(self):
+        professors = self.get_top_professors()
+        positions = (
+            professors[0].positions.all() if professors else Position.objects.none()
+        )
+        for p in professors[1:]:
+            positions = positions.union(p.positions.all())
+
+        positions = list(positions)
+
+        if len(positions) >= 2:
+            random_positions = sample(positions, 2)
+        else:
+            random_positions = positions
+
+        return random_positions
 
 
 # User Views -------------------------------------------------------------------
@@ -239,7 +264,6 @@ class TagListViewSet(
 
 
 class PositionViewSet(ModelViewSet):
-
     filter_backends = [SearchFilter]
     search_fields = [
         "title",
@@ -869,7 +893,6 @@ class Top5ProfessorsViewSet(ListModelMixin, GenericViewSet):
     permission_classes = [IsAuthenticated, IsStudent]
 
     def list(self, request, *args, **kwargs):
-
         top_professors = (
             Professor.objects.filter(major__isnull=False)
             .filter(major=request.user.student.major)
