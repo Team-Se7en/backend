@@ -854,6 +854,7 @@ class Top5StudentsViewSet(ListModelMixin, GenericViewSet):
 
         top_students = (
             Student.objects.select_related("cv")
+            .filter(major__isnull=False)
             .filter(major=request.user.professor.major)
             .filter(cv__in=top_cvs)
         )
@@ -870,7 +871,8 @@ class Top5ProfessorsViewSet(ListModelMixin, GenericViewSet):
     def list(self, request, *args, **kwargs):
 
         top_professors = (
-            Professor.objects.filter(major=request.user.student.major)
+            Professor.objects.filter(major__isnull=False)
+            .filter(major=request.user.student.major)
             .select_related("cv")
             .annotate(project_num=Count("cv__project_experiences"))
             .order_by("-project_num")[:5]
