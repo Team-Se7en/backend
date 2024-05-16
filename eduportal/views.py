@@ -1,3 +1,4 @@
+from bisect import bisect_right
 from pprint import pprint
 from random import sample
 from django.contrib.auth import get_user_model
@@ -29,28 +30,41 @@ class LandingViewSet(GenericViewSet):
     def list(self, request):
         professor_count = Professor.objects.count()
         student_count = Student.objects.count()
+
+        top_professors = self.get_top_professors(3)
+        top_students = self.get_top_students(3)
+        top_universities = self.get_top_universities(8)
+        random_positions = self.get_random_positions(top_professors, 4)
+
         return Response(
             {
                 "professor_count": professor_count,
                 "student_count": student_count,
-                "growth": self.growth(request),
-                "top_universities": self.top_universities(request),
-                "top_professors": self.top_professors(request),
-                "top_students": self.top_students(request),
-                "professor_view_positions": self.random_top_positions(
-                    request, ProfessorPositionListSerializer
+                "growth": self.calculate_growth(),
+                "top_universities": self.serialize(
+                    request, top_universities, LandingUniversitySerializer, True
                 ),
-                "student_view_positions": self.random_top_positions(
-                    request, StudentPositionListSerializer
+                "top_professors": self.serialize(
+                    request, top_professors, LandingProfessorSerializer, True
+                ),
+                "top_students": self.serialize(
+                    request, top_students, LandingStudentSerializer, True
+                ),
+                "professor_view_positions": self.serialize(
+                    request, random_positions[:2], ProfessorPositionListSerializer, True
+                ),
+                "student_view_positions": self.serialize(
+                    request, random_positions[2:], StudentPositionListSerializer, True
                 ),
             }
         )
 
-    def growth(self, request):
-        qs = User.objects.only("date_joined")
+    def calculate_growth(self):
+        users = list(
+            User.objects.values_list("date_joined", flat=True).order_by("date_joined")
+        )
 
-        site_creation_date = qs.aggregate(Min("date_joined"))["date_joined__min"]
-
+        site_creation_date = users[0] if users else timezone.now()
         today = timezone.now()
 
         delta = (today - site_creation_date) / 4
@@ -58,62 +72,55 @@ class LandingViewSet(GenericViewSet):
 
         growth = []
         for date in date_points:
-            user_count = qs.filter(date_joined__lte=date).count()
+            idx = bisect_right(users, date)
+            user_count = idx
             growth.append((date.date(), user_count))
 
         return growth
 
-    def top_universities(self, request):
-        top_universities = University.objects.order_by("rank")[:8]
-        serializer = LandingUniversitySerializer(top_universities, many=True)
+    def serialize(self, request, items, serializer, many=False):
+        ser = serializer(items, many=many)
+        return ser.data
 
-        return serializer.data
-
-    def top_professors(self, request):
-        top_professors = self.get_top_professors()
-        serializer = LandingProfessorSerializer(top_professors, many=True)
-
-        return serializer.data
-
-    def top_students(self, request):
-        students = Student.objects.annotate(
-            accepted_request_count=models.Count(
-                "request", filter=models.Q(request__status="PA")
-            )
-        )
-
-        top_students = students.order_by("-accepted_request_count")[:3]
-        serializer = LandingStudentSerializer(top_students, many=True)
-
-        return serializer.data
-
-    def random_top_positions(self, request, ser):
-        positions = self.get_random_top_positions()
-        serializer = ser(positions, many=True)
-
-        return serializer.data
-
-    def get_top_professors(self):
+    def get_top_professors(self, count):
         professors = Professor.objects.annotate(
             accepted_request_count=models.Count(
                 "positions__request", filter=models.Q(positions__request__status="SA")
             )
-        )
+        ).select_related("user")
 
-        return professors.order_by("-accepted_request_count")[:3]
+        return professors.order_by("-accepted_request_count")[:count]
 
-    def get_random_top_positions(self):
-        professors = self.get_top_professors()
+    def get_top_students(self, count):
+        students = Student.objects.annotate(
+            accepted_request_count=models.Count(
+                "request", filter=models.Q(request__status__in=["PA", "SA", "SR"])
+            )
+        ).select_related("user")
+
+        return students.order_by("-accepted_request_count")[:count]
+
+    def get_top_universities(self, count):
+        return University.objects.order_by("rank")[:count]
+
+    def get_random_positions(self, professors, count):
         positions = (
-            professors[0].positions.all() if professors else Position.objects.none()
+            (professors[0].positions.all() if professors else Position.objects.none())
+            .select_related("professor", "professor__user", "professor__university")
+            .prefetch_related("tags", "tags2")
         )
+
         for p in professors[1:]:
-            positions = positions.union(p.positions.all())
+            positions = positions.union(
+                p.positions.all()
+                .select_related("professor", "professor__user", "professor__university")
+                .prefetch_related("tags", "tags2")
+            )
 
         positions = list(positions)
 
-        if len(positions) >= 2:
-            random_positions = sample(positions, 2)
+        if len(positions) >= count:
+            random_positions = sample(positions, count)
         else:
             random_positions = positions
 
