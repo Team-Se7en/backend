@@ -33,14 +33,20 @@ class LandingViewSet(GenericViewSet):
 
         top_professors = self.get_top_professors(3)
         top_students = self.get_top_students(3)
-        top_universities = self.get_top_universities(8)
         random_positions = self.get_random_positions(top_professors, 4)
+
+        unis = list(University.objects.only("id", "icon", "rank").order_by("rank"))
+        top_universities = unis[:3]
+        random_universities = self.sample_random_universities(unis, 8)
 
         return Response(
             {
                 "professor_count": professor_count,
                 "student_count": student_count,
                 "growth": self.calculate_growth(),
+                "random_universities": self.serialize(
+                    request, random_universities, LandingUniversitySerializer, True
+                ),
                 "top_universities": self.serialize(
                     request, top_universities, LandingUniversitySerializer, True
                 ),
@@ -100,8 +106,13 @@ class LandingViewSet(GenericViewSet):
 
         return students.order_by("-accepted_request_count")[:count]
 
-    def get_top_universities(self, count):
-        return University.objects.order_by("rank")[:count]
+    def sample_random_universities(self, universities, count):
+        if len(universities) >= count:
+            random_unis = sample(universities, count)
+        else:
+            random_unis = universities
+
+        return random_unis
 
     def get_random_positions(self, professors, count):
         positions = (
