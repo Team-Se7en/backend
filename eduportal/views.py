@@ -37,7 +37,7 @@ class LandingViewSet(GenericViewSet):
 
         unis = list(University.objects.only("id", "icon", "rank").order_by("rank"))
         top_universities = unis[:3]
-        random_universities = self.sample_random_universities(unis, 8)
+        random_universities = self.sample_random_universities(unis, 12)
 
         return Response(
             {
