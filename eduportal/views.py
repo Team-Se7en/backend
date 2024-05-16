@@ -37,8 +37,12 @@ class LandingViewSet(GenericViewSet):
                 "top_universities": self.top_universities(request),
                 "top_professors": self.top_professors(request),
                 "top_students": self.top_students(request),
-                "professor_view_positions": self.random_top_positions(request, ProfessorPositionListSerializer),
-                "student_view_positions": self.random_top_positions(request, StudentPositionListSerializer),
+                "professor_view_positions": self.random_top_positions(
+                    request, ProfessorPositionListSerializer
+                ),
+                "student_view_positions": self.random_top_positions(
+                    request, StudentPositionListSerializer
+                ),
             }
         )
 
@@ -260,7 +264,6 @@ class TagListViewSet(
 
 
 class PositionViewSet(ModelViewSet):
-
     filter_backends = [SearchFilter]
     search_fields = [
         "title",
@@ -890,7 +893,6 @@ class Top5ProfessorsViewSet(ListModelMixin, GenericViewSet):
     permission_classes = [IsAuthenticated, IsStudent]
 
     def list(self, request, *args, **kwargs):
-
         top_professors = (
             Professor.objects.filter(major__isnull=False)
             .filter(major=request.user.student.major)
