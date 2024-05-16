@@ -137,11 +137,13 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
             "student",
             "user",
             "ssn",
-            "major"
+            "major",
+            "profile_image"
         ]
 
     user = SimpleUserSerializer()
     student = serializers.SerializerMethodField(method_name="username")
+    profile_image = serializers.ImageField()
 
     def username(self, student: Student):
         return student.user.id
@@ -156,10 +158,7 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
             user_serializer.is_valid(raise_exception=True)
             user_serializer.save()
         except KeyError:
-
-            class Meta:
-                model = Tag
-                exclude = ()
+            pass
 
         return super().update(instance, validated_data)
 
@@ -180,7 +179,8 @@ class ProfessorSerializer(
             "university",
             "department",
             "birth_date",
-            "major"
+            "major",
+            "profile_image"
         ]
 
     def update(self, instance, validated_data):
