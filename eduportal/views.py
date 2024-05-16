@@ -108,7 +108,7 @@ class LandingViewSet(GenericViewSet):
 
     def sample_random_universities(self, universities, count):
         if len(universities) >= count:
-            random_unis = sample(universities)
+            random_unis = sample(universities, count)
         else:
             random_unis = universities
 
