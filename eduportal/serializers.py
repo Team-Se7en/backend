@@ -137,6 +137,7 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
             "student",
             "user",
             "ssn",
+            "major"
         ]
 
     user = SimpleUserSerializer()
@@ -179,6 +180,7 @@ class ProfessorSerializer(
             "university",
             "department",
             "birth_date",
+            "major"
         ]
 
     def update(self, instance, validated_data):
