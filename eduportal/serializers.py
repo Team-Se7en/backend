@@ -599,36 +599,55 @@ class LanguageSkillSerializer(serializers.ModelSerializer):
 # Notification Serializers -----------------------------------------------------
 
 
-class NotifPositionSerializer(serializers.ModelSerializer):
-    university_name = serializers.SerializerMethodField()
-
+class NotifUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Position
-        exclude = []
+        model = UserModel
+        fields = ["first_name", "last_name"]
 
-    def get_university_name(self, obj: Position):
-        try:
-            return obj.professor.university.name
-        except:
-            return None
+
+class NotifUniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = University
+        fields = ["id", "name"]
 
 
 class NotifStudentSerializer(serializers.ModelSerializer):
-    name = serializers.SerializerMethodField()
-    university_name = serializers.SerializerMethodField()
+    user = NotifUserSerializer()
+    university = NotifUniSerializer()
 
     class Meta:
         model = Student
-        exclude = []
+        fields = [
+            "id",
+            "user",
+            "university",
+        ]
 
-    def get_name(self, obj: Student):
-        return f"{obj.user.first_name} {obj.user.last_name}"
 
-    def get_university_name(self, obj: Student):
-        try:
-            return obj.university.name
-        except:
-            return None
+class NotifProfessorSerializer(serializers.ModelSerializer):
+    user = NotifUserSerializer()
+    university = NotifUniSerializer()
+
+    class Meta:
+        model = Student
+        fields = [
+            "id",
+            "user",
+            "university",
+        ]
+
+
+class NotifPositionSerializer(serializers.ModelSerializer):
+    professor = NotifProfessorSerializer()
+
+    class Meta:
+        model = Position
+        fields = [
+            "id",
+            "title",
+            "end_date",
+            "professor",
+        ]
 
 
 class NotificationSerializer(serializers.ModelSerializer):
