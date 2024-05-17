@@ -752,3 +752,26 @@ class Top5ProfessorsSerializer(serializers.ModelSerializer):
                 professor.user.last_name.lower().capitalize(),
             ]
         )
+
+class ProfessorPositionSearchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Position
+        fields = (
+            "title",
+            "start_date",
+            "end_date",
+            "position_start_date",
+            "position_end_date",
+            "university_name",
+            "fee",
+            "capacity",
+            "request_count",
+            "tags",
+        )
+
+    university_name = serializers.SerializerMethodField()
+
+    def get_university_name(self, pos: Position):
+        if pos.professor.university is not None:
+            return pos.professor.university.name
+        return None
