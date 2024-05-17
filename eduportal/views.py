@@ -266,8 +266,10 @@ class ProfessorViewSet(
         if request.method == "GET":
             serializer = ProfessorSerializer(professor)
             return Response(serializer.data)
-        elif request.method == "PATCH":
-            serializer = ProfessorSerializer(professor, data=request.data, partial=True)
+        elif request.method in ["PATCH", "PUT"]:
+            serializer = ProfessorSerializer(
+                professor, data=request.data, partial=(request.method == "PATCH")
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
