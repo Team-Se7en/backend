@@ -65,7 +65,11 @@ class Student(models.Model):
     enrollment_date = models.DateField(null=True)
     status = models.CharField(max_length=1, choices=STATUS, null=True)
     major = models.IntegerField(choices=MajorTypeChoices, null=True)
-    interest_tags = models.ManyToManyField("Tag2", related_name="students")
+    interest_tags = models.ManyToManyField(
+        "Tag2",
+        related_name="students",
+        blank=True,
+    )
     profile_image = models.ImageField(upload_to="profileImage/", null=True)
 
     notification_item = GenericRelation(
@@ -199,7 +203,7 @@ class CV(models.Model):
         choices=EmploymentStatusChoices.choices, null=True, blank=True
     )
     about = models.TextField(null=True, blank=True)
-    soft_skills = models.ManyToManyField(SoftSkill)
+    soft_skills = models.ManyToManyField(SoftSkill, blank=True)
 
 
 class WorkExperience(models.Model):
