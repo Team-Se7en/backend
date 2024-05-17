@@ -648,7 +648,7 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
 
 
 class ProfessorOwnPositionSearchViewSet(ListModelMixin, GenericViewSet):
-    serializer_class = ProfessorPositionListSerializer
+    serializer_class = ProfessorPositionSearchSerializer
     permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
     filter_backends = [SearchFilter]
     filterset_class = ProfessorOwnPositionFilter
