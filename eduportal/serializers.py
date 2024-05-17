@@ -627,7 +627,6 @@ class NotifStudentSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     position = serializers.SerializerMethodField()
     student = serializers.SerializerMethodField()
-    notification_type = serializers.CharField(source="get_notification_type_display")
 
     class Meta:
         model = Notification
