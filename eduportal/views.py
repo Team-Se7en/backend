@@ -220,7 +220,7 @@ class StudentProfileViewSet(
 
     @action(
         detail=False,
-        methods=["GET", "PATCH", "DELETE"],
+        methods=["GET", "PATCH", "PUT", "DELETE"],
         permission_classes=[IsAuthenticated],
     )
     def me(self, request, *args, **kwargs):
