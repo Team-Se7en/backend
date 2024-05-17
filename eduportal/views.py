@@ -200,7 +200,7 @@ class StudentGetListViewSet(
     ListModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = Student.objects.select_related("user").all()
+    queryset = Student.objects.select_related("user").prefetch_related("interest_tags").all()
     serializer_class = StudentGetListSerializer
     filter_backends = [SearchFilter]
     search_fields = ["user__first_name", "user__last_name", "university__name"]
@@ -209,7 +209,7 @@ class StudentGetListViewSet(
 class StudentProfileViewSet(
     viewsets.GenericViewSet,
 ):
-    queryset = Student.objects.all()
+    queryset = Student.objects.prefetch_related("interest_tags").all()
     serializer_class = OwnStudentProfileSerializer
     http_method_names = [
         "get",
@@ -221,7 +221,7 @@ class StudentProfileViewSet(
     @action(
         detail=False,
         methods=["GET", "PATCH", "PUT", "DELETE"],
-        permission_classes=[IsAuthenticated],
+        permission_classes=[IsAuthenticated, IsStudent],
     )
     def me(self, request, *args, **kwargs):
         student = get_object_or_404(Student, user_id=request.user.id)

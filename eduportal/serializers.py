@@ -143,11 +143,18 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         # fields need to be changed
-        fields = ["university", "student", "user", "ssn", "major", "profile_image"]
+        fields = [
+            "university",
+            "student",
+            "user",
+            "ssn",
+            "major",
+            "profile_image",
+            "interest_tags",
+        ]
 
     user = SimpleUserSerializer()
     student = serializers.SerializerMethodField(method_name="username")
-    profile_image = serializers.ImageField()
 
     def username(self, student: Student):
         return student.user.id
