@@ -30,6 +30,9 @@ class University(models.Model):
     total_student_count = models.IntegerField()
     international_student_count = models.IntegerField()
 
+    def __str__(self) -> str:
+        return self.name
+
     def delete(self, *args, **kwargs):
         self.image.delete()
         self.icon.delete()

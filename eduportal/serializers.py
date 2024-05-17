@@ -100,7 +100,7 @@ class UniversitySerializer(serializers.ModelSerializer):
         poses = (
             Position.objects.filter(professor__university=obj)
             .select_related("professor", "professor__user", "professor__university")
-            .prefetch_related("tags")
+            .prefetch_related("tags", "tags2")
         )
 
         poses = poses.filter(start_date__lte=timezone.now()).order_by("-start_date")[:5]
