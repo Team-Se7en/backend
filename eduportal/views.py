@@ -44,7 +44,7 @@ class LandingViewSet(GenericViewSet):
             ).order_by("rank")
         )
         top_universities = unis[:3]
-        random_universities = self.sample_random_universities(unis, 16)
+        random_universities = self.sample_random_universities(unis, 18)
 
         return Response(
             {
