@@ -832,8 +832,10 @@ class NotificationViewSet(
     permission_classes = [IsAuthenticated, IsNotificationOwner]
 
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user).prefetch_related(
-            "items"
+        return (
+            Notification.objects.filter(user=self.request.user)
+            .order_by("-id")
+            .prefetch_related("items")
         )
 
     @action(detail=False, methods=["GET"])
