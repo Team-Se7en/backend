@@ -753,25 +753,24 @@ class Top5ProfessorsSerializer(serializers.ModelSerializer):
             ]
         )
 
-class ProfessorPositionSearchSerializer(serializers.ModelSerializer):
+class ProfessorPositionSearchSerializer(BasePositionSerializer):
+    university_name = serializers.SerializerMethodField("get_university_name")
+    university_id = serializers.SerializerMethodField("get_university_id")
+
     class Meta:
         model = Position
-        fields = (
-            "title",
-            "start_date",
-            "end_date",
-            "position_start_date",
-            "position_end_date",
-            "university_name",
-            "fee",
-            "capacity",
-            "request_count",
-            "tags",
-        )
-
-    university_name = serializers.SerializerMethodField()
+        exclude = [
+            "description",
+        ]
 
     def get_university_name(self, pos: Position):
-        if pos.professor.university is not None:
+        try:
             return pos.professor.university.name
-        return None
+        except:
+            return None
+
+    def get_university_id(self, pos: Position):
+        try:
+            return pos.professor.university.id
+        except:
+            return None
