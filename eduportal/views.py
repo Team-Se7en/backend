@@ -593,6 +593,7 @@ class RequestViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         saved_request = serializer.save()
         position.request_count += 1
+        position.save()
         serializer = StudentCreateRequestSerializer(saved_request)
         return Response(serializer.data)
 
