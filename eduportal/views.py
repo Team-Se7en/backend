@@ -214,6 +214,7 @@ class StudentProfileViewSet(
     http_method_names = [
         "get",
         "patch",
+        "put",
         "delete",
     ]
 
@@ -227,9 +228,9 @@ class StudentProfileViewSet(
         if request.method == "GET":
             serializer = OwnStudentProfileSerializer(student)
             return Response(serializer.data)
-        elif request.method == "PATCH":
+        elif request.method in ["PATCH", "PUT"]:
             serializer = OwnStudentProfileSerializer(
-                student, data=request.data, partial=True
+                student, data=request.data, partial=(request.method == "PATCH")
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
