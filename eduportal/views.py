@@ -44,7 +44,7 @@ class LandingViewSet(GenericViewSet):
             ).order_by("rank")
         )
         top_universities = unis[:3]
-        random_universities = self.sample_random_universities(unis, 12)
+        random_universities = self.sample_random_universities(unis, 16)
 
         return Response(
             {
@@ -245,11 +245,12 @@ class StudentProfileViewSet(
 
 
 class ProfessorViewSet(
-    ListModelMixin,
+    CreateModelMixin,
     RetrieveModelMixin,
+    ListModelMixin,
     GenericViewSet,
 ):
-    http_method_names = ["get", "patch"]
+    http_method_names = ["get", "patch", "put"]
     queryset = Professor.objects.select_related("user").all()
     serializer_class = ProfessorSerializer
     filter_backends = [SearchFilter]
@@ -257,7 +258,7 @@ class ProfessorViewSet(
 
     @action(
         detail=False,
-        methods=["GET", "PATCH"],
+        methods=["GET", "PATCH", "PUT"],
         permission_classes=[IsProfessor],
     )
     def me(self, request):
