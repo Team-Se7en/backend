@@ -185,7 +185,9 @@ class UniversityViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         match self.action:
-            case "list" | "create" | "partial_update" | "update" | "destroy":
+            case "list":
+                return [AllowAny()]
+            case "create" | "partial_update" | "update" | "destroy":
                 return [IsAdminUser()]
             case "retrieve":
                 return [AllowAny()]
@@ -200,7 +202,9 @@ class StudentGetListViewSet(
     ListModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = Student.objects.select_related("user").prefetch_related("interest_tags").all()
+    queryset = (
+        Student.objects.select_related("user").prefetch_related("interest_tags").all()
+    )
     serializer_class = StudentGetListSerializer
     filter_backends = [SearchFilter]
     search_fields = ["user__first_name", "user__last_name", "university__name"]
