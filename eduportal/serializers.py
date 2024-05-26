@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_countries.serializer_fields import CountryField as CountrySerializer
 from eduportal.models import Position
+from ticketing_system.models import *
 from rest_framework import serializers
 from django.db.models import Avg
 
@@ -753,6 +754,7 @@ class Top5ProfessorsSerializer(serializers.ModelSerializer):
             ]
         )
 
+
 class ProfessorPositionSearchSerializer(BasePositionSerializer):
     university_name = serializers.SerializerMethodField("get_university_name")
     university_id = serializers.SerializerMethodField("get_university_id")
@@ -774,3 +776,30 @@ class ProfessorPositionSearchSerializer(BasePositionSerializer):
             return pos.professor.university.id
         except:
             return None
+
+
+# Chat System Serializers ------------------------------------------------------
+
+
+class ChatSystemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = [
+            "id",
+            "group_name",
+            "created_at",
+        ]
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = [
+            "id",
+            "text",
+            "send_time",
+            "related_chat_group",
+            "is_student",
+        ]
+
+    related_chat_group = ChatSystemSerializer()
