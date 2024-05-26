@@ -17,6 +17,11 @@ class Message(models.Model):
         ChatSystem,
         on_delete=models.CASCADE,
     )
+    user = models.ForeignKey(
+        USER_MODEL,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
 
 
 class ChatMembers(models.Model):
