@@ -164,10 +164,10 @@ class Position(models.Model):
 
 class Request(models.Model):
     REQUEST_STATUS = [
-        ("SP", "Student Pending"),
+        ("SP", "Pending Student Response"),
         ("SR", "Student Rejected"),
         ("SA", "Student Accepted"),
-        ("PP", "Professor Pending"),
+        ("PP", "Pending Professor Response"),
         ("PR", "Professor Rejected"),
         ("PA", "Professor Accepted"),
     ]
