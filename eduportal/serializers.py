@@ -371,6 +371,13 @@ class StudentStatusMixin:
             return my_req.get_status_display()
         return super().get_status(pos)
 
+    def get_my_request(self, pos: Position):
+        my_requests = getattr(pos, "my_request", [])
+        if my_requests:
+            my_req = my_requests[0]
+            return StudentRequestDetailSerializer(my_req).data
+        return None
+
 
 class AnonymousPositionListSerializer(
     BasePositionListSerializer,
@@ -413,7 +420,8 @@ class StudentPositionDetailSerializer(
     StudentStatusMixin,
     BasePositionDetailSerializer,
 ):
-    remaining = serializers.SerializerMethodField("get_remaining")
+    remaining = serializers.SerializerMethodField()
+    my_request = serializers.SerializerMethodField()
 
 
 class ProfessorPositionDetailSerializer(
