@@ -973,3 +973,14 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
         )
         return base_query
 
+
+class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        base_query = Message.objects.filter(
+            related_chat_group=self.kwargs["pk"]
+        )
+        sorted_query = base_query.order_by("-send_time")
+        return sorted_query

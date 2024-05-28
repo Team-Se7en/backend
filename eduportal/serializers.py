@@ -821,3 +821,9 @@ class MessageSerializer(serializers.ModelSerializer):
         ]
 
     related_chat_group = ChatSystemSerializer()
+    is_student = serializers.SerializerMethodField()
+
+    def get_is_student(self,message: Message):
+        if message.user is None:
+            return True
+        return message.user.is_student
