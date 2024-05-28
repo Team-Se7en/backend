@@ -25,6 +25,9 @@ class SimpleProfessorSerializer(
 class SimpleStudentSerializer(
     serializers.ModelSerializer,
 ):
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+
     status = serializers.CharField(source="get_status_display")
     major = serializers.CharField(source="get_major_display")
     gender = serializers.CharField(source="get_gender_display")
@@ -32,6 +35,12 @@ class SimpleStudentSerializer(
     class Meta:
         model = Student
         fields = "__all__"
+
+    def get_first_name(self, student: Student):
+        return student.user.first_name
+
+    def get_last_name(self, student: Student):
+        return student.user.last_name
 
 
 class SimpleUserSerializer(
@@ -46,12 +55,10 @@ class SimpleUserSerializer(
         ]
 
 
-class UserDetailSerializer(
-    serializers.ModelSerializer,
-):
-    user_type = serializers.SerializerMethodField("get_user_type")
-    professor = SimpleProfessorSerializer()
-    student = SimpleStudentSerializer()
+class UserDetailSerializer(serializers.ModelSerializer):
+    user_type = serializers.SerializerMethodField()
+    professor = serializers.SerializerMethodField()
+    student = serializers.SerializerMethodField()
 
     class Meta:
         model = apps.get_model(settings.AUTH_USER_MODEL)
@@ -73,7 +80,22 @@ class UserDetailSerializer(
         return fields
 
     def get_user_type(self, user):
-        return get_user_type(self.context["request"])
+        if user.is_anonymous:
+            return "Anonymous"
+        elif user.is_student:
+            return "Student"
+        else:
+            return "Professor"
+
+    def get_professor(self, user):
+        if user.is_student:
+            return None
+        return SimpleProfessorSerializer(user.professor).data
+
+    def get_student(self, user):
+        if not user.is_student:
+            return None
+        return SimpleStudentSerializer(user.student).data
 
 
 # University Serializers -------------------------------------------------------
@@ -349,6 +371,13 @@ class StudentStatusMixin:
             return my_req.get_status_display()
         return super().get_status(pos)
 
+    def get_my_request(self, pos: Position):
+        my_requests = getattr(pos, "my_request", [])
+        if my_requests:
+            my_req = my_requests[0]
+            return StudentRequestDetailSerializer(my_req).data
+        return None
+
 
 class AnonymousPositionListSerializer(
     BasePositionListSerializer,
@@ -391,13 +420,24 @@ class StudentPositionDetailSerializer(
     StudentStatusMixin,
     BasePositionDetailSerializer,
 ):
-    remaining = serializers.SerializerMethodField("get_remaining")
+    remaining = serializers.SerializerMethodField()
+    my_request = serializers.SerializerMethodField()
 
 
 class ProfessorPositionDetailSerializer(
     BasePositionDetailSerializer,
 ):
     pass
+
+
+class OwnerPositionRequestDetailSerializer(
+    serializers.ModelSerializer,
+):
+    student = SimpleStudentSerializer()
+
+    class Meta:
+        model = Request
+        fields = "__all__"
 
 
 class OwnerPositionDetailSerializer(
@@ -414,7 +454,7 @@ class OwnerPositionDetailSerializer(
 
     def get_requests(self, pos: Position):
         reqs = getattr(pos, "position_requests", [])
-        return RequestListSeralizer(reqs, many=True).data
+        return OwnerPositionRequestDetailSerializer(reqs, many=True).data
 
 
 class PositionUpdateSerializer(
@@ -752,6 +792,7 @@ class Top5ProfessorsSerializer(serializers.ModelSerializer):
                 professor.user.last_name.lower().capitalize(),
             ]
         )
+
 
 class ProfessorPositionSearchSerializer(BasePositionSerializer):
     university_name = serializers.SerializerMethodField("get_university_name")
