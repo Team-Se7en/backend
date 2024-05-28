@@ -787,8 +787,26 @@ class ChatSystemSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "group_name",
-            "created_at",
+            "part_of_last_message",
+            "time_of_the_last_message",
+            "person_of_the_last_message"
         ]
+
+    part_of_last_message = serializers.SerializerMethodField()
+    time_of_the_last_message = serializers.SerializerMethodField()
+    person_of_the_last_message = serializers.SerializerMethodField()
+
+    def get_person_of_the_last_message(self,chat:ChatSystem):
+        last_message = chat.messages.order_by('send_time').reverse().first() 
+        return last_message.user.first_name + last_message.user.last_name
+
+    def get_time_of_the_last_message(self,chat:ChatSystem):
+        last_message = chat.messages.order_by('send_time').reverse().first() 
+        return last_message.send_time
+
+    def get_part_of_last_message(self,chat:ChatSystem):
+        last_message = chat.messages.order_by('send_time').reverse().first()  
+        return last_message.text[:50]  
 
 
 class MessageSerializer(serializers.ModelSerializer):

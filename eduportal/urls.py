@@ -50,7 +50,7 @@ router.register(
 )
 router.register("landing", views.LandingViewSet, basename="landing")
 router.register("notifications", views.NotificationViewSet, basename="notification")
-
+router.register("chat_list",views.ChatListViewSet,basename="chat_list")
 
 professors_router = routers.NestedSimpleRouter(router, "professors", lookup="professor")
 

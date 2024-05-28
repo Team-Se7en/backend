@@ -957,3 +957,19 @@ class Top5ProfessorsViewSet(ListModelMixin, GenericViewSet):
         seralizer = Top5ProfessorsSerializer(top_professors, many=True)
 
         return Response(seralizer.data)
+
+
+# Chat List ViewSet ------------------------------------------------------------
+
+
+class ChatListViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = ChatSystemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self, request):
+        query_1 = ChatMembers.objects.filter(participants__id=request.user.id)
+        base_query = ChatSystem.objects.prefetch_related("chat").filter(
+            chat__in=query_1
+        )
+        return base_query
+
