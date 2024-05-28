@@ -346,7 +346,13 @@ class PositionViewSet(ModelViewSet):
                     case "Student":
                         return StudentPositionDetailSerializer
                     case "Professor":
-                        if self.get_object().professor.user == user:
+                        if (
+                            Position.objects.only("professor")
+                            .select_related("professor", "professor__user")
+                            .get(pk=self.kwargs["pk"])
+                            .professor.user
+                            == user
+                        ):
                             return OwnerPositionDetailSerializer
                         return ProfessorPositionDetailSerializer
                 return None
@@ -367,8 +373,11 @@ class PositionViewSet(ModelViewSet):
             queryset = queryset.exclude(professor__user__id=user.id)
         if self.action == "retrieve":
             if user_type == "Professor":
-                requests_for_position = Request.objects.filter(
-                    position__professor__user=user
+                requests_for_position = (
+                    Request.objects.filter(position__professor__user=user)
+                    .exclude(status="PR")
+                    .select_related("student", "student__user")
+                    .prefetch_related("student__interest_tags")
                 )
                 queryset = queryset.prefetch_related(
                     Prefetch(
