@@ -966,3 +966,46 @@ class Top5ProfessorsViewSet(ListModelMixin, GenericViewSet):
         seralizer = Top5ProfessorsSerializer(top_professors, many=True)
 
         return Response(seralizer.data)
+
+
+# Chat List ViewSet ------------------------------------------------------------
+
+
+class ChatListViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = ChatSystemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        query_1 = ChatMembers.objects.filter(participants__id=self.request.user.id)
+        base_query = ChatSystem.objects.prefetch_related("chat").filter(
+            chat__in=query_1
+        )
+        serializer = ChatSystemSerializer(
+            base_query, many=True, context={"request": request}
+        )
+        return Response(serializer.data)
+
+
+class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
+    serializer_class = RetrieveMessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
+        sorted_query = base_query.order_by("-send_time")
+        serializer = RetrieveMessageSerializer(sorted_query, many=True)
+        return Response(serializer.data)
+
+
+class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
+    serializer_class = UpdateMessageLastSeenSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        query_set = (
+            Message.objects.filter(related_chat_group=request.data.get("id"))
+            .select_related(User)
+            .exclude(user__id=request.user.id)
+            .filter(seen_flag=False)
+            .update(seen_flag=True)
+        )
+        return Response(status=status.HTTP_200_OK)
