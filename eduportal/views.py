@@ -1029,3 +1029,8 @@ class CreateMessageViewSet(CreateModelMixin, GenericViewSet):
             )
         request.data['user'] = request.user.id
         return super().create(request, *args, **kwargs)
+
+class DeleteMessageViewSet(DestroyModelMixin,GenericViewSet):
+    serializer_class = DeleteMessageSerializer
+    permission_classes = [IsAuthenticated,IsOwnMessage]
+    queryset = Message.objects.all()
