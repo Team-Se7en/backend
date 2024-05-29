@@ -8,6 +8,8 @@ from ticketing_system.models import *
 from rest_framework import serializers
 from django.db.models import Avg
 
+from pprint import pprint
+
 from .models import *
 from .utils.views import get_user_type
 
@@ -790,12 +792,14 @@ class ChatSystemSerializer(serializers.ModelSerializer):
             "part_of_last_message",
             "time_of_the_last_message",
             "person_of_the_last_message",
-            "chat_enable"
+            "chat_enable",
+            "unseen_messages_flag",
         ]
 
     part_of_last_message = serializers.SerializerMethodField()
     time_of_the_last_message = serializers.SerializerMethodField()
     person_of_the_last_message = serializers.SerializerMethodField()
+    unseen_messages_flag = serializers.SerializerMethodField()
 
     def get_person_of_the_last_message(self, chat: ChatSystem):
         last_message = chat.messages.order_by("-send_time").first()
@@ -814,6 +818,16 @@ class ChatSystemSerializer(serializers.ModelSerializer):
         if last_message is None:
             return None
         return last_message.text[:50]
+
+    def get_unseen_messages_flag(self, chat: ChatSystem):
+        if chat.messages is None:
+            return False
+        query_set = Message.objects.filter(related_chat_group=chat.pk)
+        query_set = query_set.exclude(user__id=self.context["request"].user.id)
+        query_set = query_set.filter(seen_flag=False)
+        if query_set.exists():
+            return True
+        return False
 
 
 class RetrieveMessageSerializer(serializers.ModelSerializer):
