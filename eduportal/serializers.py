@@ -798,18 +798,24 @@ class ChatSystemSerializer(serializers.ModelSerializer):
 
     def get_person_of_the_last_message(self, chat: ChatSystem):
         last_message = chat.messages.order_by("-send_time").first()
+        if last_message is None:
+            return None
         return last_message.user.first_name + last_message.user.last_name
 
     def get_time_of_the_last_message(self, chat: ChatSystem):
         last_message = chat.messages.order_by("send_time").reverse().first()
+        if last_message is None:
+            return None
         return last_message.send_time
 
     def get_part_of_last_message(self, chat: ChatSystem):
         last_message = chat.messages.order_by("send_time").reverse().first()
+        if last_message is None:
+            return None
         return last_message.text[:50]
 
 
-class MessageSerializer(serializers.ModelSerializer):
+class RetrieveMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = [
@@ -826,7 +832,7 @@ class MessageSerializer(serializers.ModelSerializer):
     sender = serializers.SerializerMethodField()
 
     def get_chat_id(self, message: Message):
-        return message.related_chat_group
+        return message.related_chat_group.id
 
     def get_is_student(self, message: Message):
         if message.user is None:
@@ -835,3 +841,9 @@ class MessageSerializer(serializers.ModelSerializer):
 
     def get_sender(self, message: Message):
         return message.user.first_name + " " + message.user.last_name
+
+
+class UpdateMessageLastSeenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["seen_flag"]

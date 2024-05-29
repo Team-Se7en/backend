@@ -16,6 +16,7 @@ class Message(models.Model):
     related_chat_group = models.ForeignKey(
         ChatSystem,
         on_delete=models.CASCADE,
+        related_name='messages'
     )
     user = models.ForeignKey(
         USER_MODEL,
@@ -23,6 +24,7 @@ class Message(models.Model):
         on_delete=models.SET_NULL,
     )
     seen_flag = models.BooleanField(default=False)
+
 
 class ChatMembers(models.Model):
     chat = models.OneToOneField(

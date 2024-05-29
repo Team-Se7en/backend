@@ -966,8 +966,8 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ChatSystemSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self, request):
-        query_1 = ChatMembers.objects.filter(participants__id=request.user.id)
+    def get_queryset(self):
+        query_1 = ChatMembers.objects.filter(participants__id=self.request.user.id)
         base_query = ChatSystem.objects.prefetch_related("chat").filter(
             chat__in=query_1
         )
@@ -975,12 +975,32 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
 
 
 class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
-    serializer_class = MessageSerializer
+    serializer_class = RetrieveMessageSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        base_query = Message.objects.filter(
-            related_chat_group=self.kwargs["pk"]
-        )
+        base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
         sorted_query = base_query.order_by("-send_time")
         return sorted_query
+
+    def retrieve(self, request, *args, **kwargs):
+        base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
+        sorted_query = base_query.order_by("-send_time")
+        serializer = RetrieveMessageSerializer(sorted_query,many = True)
+        return Response(serializer.data)
+
+
+class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
+    serializer_class = UpdateMessageLastSeenSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        query_set = (
+            Message.objects
+            .exclude(user__id=request.user.id)
+            .filter(seen_flag=False)
+        )
+        for message in query_set[:]:
+            message.seen_flag = True
+            message.save()
+
+        return Response(status=status.HTTP_200_OK)
