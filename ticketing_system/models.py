@@ -22,7 +22,7 @@ class Message(models.Model):
         null=True,
         on_delete=models.SET_NULL,
     )
-
+    seen_flag = models.BooleanField(default=False)
 
 class ChatMembers(models.Model):
     chat = models.OneToOneField(
