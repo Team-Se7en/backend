@@ -913,3 +913,8 @@ class CreateMessageSerializer(serializers.ModelSerializer):
             "user"
         ]
 
+
+class DeleteMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ['id']
