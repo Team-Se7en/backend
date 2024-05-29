@@ -789,24 +789,24 @@ class ChatSystemSerializer(serializers.ModelSerializer):
             "group_name",
             "part_of_last_message",
             "time_of_the_last_message",
-            "person_of_the_last_message"
+            "person_of_the_last_message",
         ]
 
     part_of_last_message = serializers.SerializerMethodField()
     time_of_the_last_message = serializers.SerializerMethodField()
     person_of_the_last_message = serializers.SerializerMethodField()
 
-    def get_person_of_the_last_message(self,chat:ChatSystem):
-        last_message = chat.messages.order_by('send_time').reverse().first() 
+    def get_person_of_the_last_message(self, chat: ChatSystem):
+        last_message = chat.messages.order_by("-send_time").first()
         return last_message.user.first_name + last_message.user.last_name
 
-    def get_time_of_the_last_message(self,chat:ChatSystem):
-        last_message = chat.messages.order_by('send_time').reverse().first() 
+    def get_time_of_the_last_message(self, chat: ChatSystem):
+        last_message = chat.messages.order_by("send_time").reverse().first()
         return last_message.send_time
 
-    def get_part_of_last_message(self,chat:ChatSystem):
-        last_message = chat.messages.order_by('send_time').reverse().first()  
-        return last_message.text[:50]  
+    def get_part_of_last_message(self, chat: ChatSystem):
+        last_message = chat.messages.order_by("send_time").reverse().first()
+        return last_message.text[:50]
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -816,14 +816,22 @@ class MessageSerializer(serializers.ModelSerializer):
             "id",
             "text",
             "send_time",
-            "related_chat_group",
+            "chat_id",
             "is_student",
+            "sender",
         ]
 
-    related_chat_group = ChatSystemSerializer()
+    chat_id = serializers.SerializerMethodField()
     is_student = serializers.SerializerMethodField()
+    sender = serializers.SerializerMethodField()
 
-    def get_is_student(self,message: Message):
+    def get_chat_id(self, message: Message):
+        return message.related_chat_group
+
+    def get_is_student(self, message: Message):
         if message.user is None:
             return True
         return message.user.is_student
+
+    def get_sender(self, message: Message):
+        return message.user.first_name + " " + message.user.last_name
