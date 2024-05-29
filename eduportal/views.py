@@ -1009,3 +1009,23 @@ class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
             .update(seen_flag=True)
         )
         return Response(status=status.HTTP_200_OK)
+
+
+class CreateMessageViewSet(CreateModelMixin, GenericViewSet):
+    serializer_class = CreateMessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        last_chat = (
+            Message.objects.filter(
+                related_chat_group=request.data.get("related_chat_group")
+            )
+            .order_by("-send_time")
+            .first()
+        )
+        if last_chat is not None and last_chat.user.id == request.user.id:
+            return Response(
+                "It's not your turn.", status=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
+        request.data['user'] = request.user.id
+        return super().create(request, *args, **kwargs)

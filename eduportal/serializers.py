@@ -902,3 +902,14 @@ class UpdateMessageLastSeenSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ["seen_flag"]
+
+
+class CreateMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = [
+            "text",
+            "related_chat_group",
+            "user"
+        ]
+

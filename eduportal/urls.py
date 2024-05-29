@@ -55,12 +55,13 @@ router.register(
 router.register("landing", views.LandingViewSet, basename="landing")
 router.register("notifications", views.NotificationViewSet, basename="notification")
 router.register("chat_list", views.ChatListViewSet, basename="chat_list")
-router.register("messages",views.ChatMessagesViewSet,basename="chat_messages")
+router.register("messages", views.ChatMessagesViewSet, basename="chat_messages")
 router.register(
     "message_last_seen_update",
     views.UpdateLastSeenMessageViewSet,
     basename="update_last_seen",
 )
+router.register("create_message", views.CreateMessageViewSet, basename="create_message")
 
 professors_router = routers.NestedSimpleRouter(router, "professors", lookup="professor")
 
