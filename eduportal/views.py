@@ -1027,15 +1027,24 @@ class CreateMessageViewSet(CreateModelMixin, GenericViewSet):
             return Response(
                 "It's not your turn.", status=status.HTTP_405_METHOD_NOT_ALLOWED
             )
-        request.data['user'] = request.user.id
+        request.data["user"] = request.user.id
         return super().create(request, *args, **kwargs)
 
-class DeleteMessageViewSet(DestroyModelMixin,GenericViewSet):
+
+class DeleteMessageViewSet(DestroyModelMixin, GenericViewSet):
     serializer_class = DeleteMessageSerializer
-    permission_classes = [IsAuthenticated,IsOwnMessage]
+    permission_classes = [IsAuthenticated, IsOwnMessage]
     queryset = Message.objects.all()
 
-class EditMessageViewSet(UpdateModelMixin,GenericViewSet):
+
+class EditMessageViewSet(UpdateModelMixin, GenericViewSet):
     serializer_class = EditMessageSerializer
-    permission_classes = [IsAuthenticated,IsOwnMessage]
+    permission_classes = [IsAuthenticated, IsOwnMessage]
     queryset = Message.objects.all()
+
+
+# Upload Image View Sets -------------------------------------------------------
+
+
+def upload_file(request):
+    pass

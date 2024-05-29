@@ -174,7 +174,6 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
             "user",
             "ssn",
             "major",
-            "profile_image",
             "interest_tags",
         ]
 
@@ -920,3 +919,11 @@ class EditMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ["text"]
+
+# Profile Image Serializers ----------------------------------------------------
+
+class ProfileImageSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Image
+        fields = '__all__'
+

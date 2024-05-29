@@ -16,6 +16,10 @@ UserModel = get_user_model()
 # Create your models here.
 
 
+class Image(models.Model):
+    image = models.FileField(upload_to="images/",blank = True,null=True)
+
+
 class University(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
@@ -70,7 +74,7 @@ class Student(models.Model):
         related_name="students",
         blank=True,
     )
-    profile_image = models.ImageField(upload_to="profileImage/", null=True)
+    profile_image = models.OneToOneField(Image, on_delete=models.SET_NULL, null=True)
 
     notification_item = GenericRelation(
         "NotificationItem", related_query_name="student"
@@ -96,7 +100,7 @@ class Professor(models.Model):
     department = models.CharField(max_length=255)
     birth_date = models.DateField(null=True, blank=True)
     major = models.IntegerField(choices=MajorTypeChoices, null=True)
-    profile_image = models.ImageField(upload_to="profileImage/", null=True)
+    profile_image = models.OneToOneField(Image, on_delete=models.SET_NULL, null=True)
 
     def delete(self, *args, **kwargs):
         self.profile_image.delete()
