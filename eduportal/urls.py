@@ -63,6 +63,7 @@ router.register(
 )
 router.register("create_message", views.CreateMessageViewSet, basename="create_message")
 router.register("delete_message",views.DeleteMessageViewSet)
+router.register("edit_message",views.EditMessageViewSet,basename="edit_message")
 
 professors_router = routers.NestedSimpleRouter(router, "professors", lookup="professor")
 

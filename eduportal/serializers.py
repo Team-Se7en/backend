@@ -907,14 +907,16 @@ class UpdateMessageLastSeenSerializer(serializers.ModelSerializer):
 class CreateMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = [
-            "text",
-            "related_chat_group",
-            "user"
-        ]
+        fields = ["text", "related_chat_group", "user"]
 
 
 class DeleteMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id']
+        fields = ["id"]
+
+
+class EditMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["text"]
