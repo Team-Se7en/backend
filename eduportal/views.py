@@ -1034,3 +1034,8 @@ class DeleteMessageViewSet(DestroyModelMixin,GenericViewSet):
     serializer_class = DeleteMessageSerializer
     permission_classes = [IsAuthenticated,IsOwnMessage]
     queryset = Message.objects.all()
+
+class EditMessageViewSet(UpdateModelMixin,GenericViewSet):
+    serializer_class = EditMessageSerializer
+    permission_classes = [IsAuthenticated,IsOwnMessage]
+    queryset = Message.objects.all()
