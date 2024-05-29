@@ -790,6 +790,7 @@ class ChatSystemSerializer(serializers.ModelSerializer):
             "part_of_last_message",
             "time_of_the_last_message",
             "person_of_the_last_message",
+            "chat_enable"
         ]
 
     part_of_last_message = serializers.SerializerMethodField()

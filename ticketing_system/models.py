@@ -8,7 +8,7 @@ USER_MODEL = get_user_model()
 class ChatSystem(models.Model):
     group_name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    chat_enable = models.BooleanField(default=True)
 
 class Message(models.Model):
     text = models.TextField(max_length=255)
