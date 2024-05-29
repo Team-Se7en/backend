@@ -992,7 +992,7 @@ class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
-        sorted_query = base_query.order_by("-send_time")
+        sorted_query = base_query.order_by("send_time")
         serializer = RetrieveMessageSerializer(sorted_query, many=True)
         return Response(serializer.data)
 
