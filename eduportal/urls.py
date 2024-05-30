@@ -134,6 +134,10 @@ urlpatterns = [
         views.CVAPIView.as_view(),
         name="student-cv",
     ),
+    path(
+        "upload_image/",
+        views.model_form_upload
+    )
 ]
 urlpatterns += router.urls
 urlpatterns += professors_router.urls

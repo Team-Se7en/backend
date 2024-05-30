@@ -17,7 +17,7 @@ UserModel = get_user_model()
 
 
 class Image(models.Model):
-    image = models.FileField(upload_to="images/",blank = True,null=True)
+    image = models.FileField(upload_to="image/")
 
 
 class University(models.Model):

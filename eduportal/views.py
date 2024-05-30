@@ -3,9 +3,9 @@ from pprint import pprint
 from random import sample
 from django.contrib.auth import get_user_model
 from django.db.models import Prefetch, Min, Count, Avg
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404,render
 from django_filters.rest_framework import DjangoFilterBackend
-from django.http import Http404
+from django.http import Http404,HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -20,6 +20,7 @@ from .permissions import *
 from .serializers import *
 from .utils.views import *
 from .filters import *
+from .forms import *
 
 User = get_user_model()
 
@@ -1046,5 +1047,17 @@ class EditMessageViewSet(UpdateModelMixin, GenericViewSet):
 # Upload Image View Sets -------------------------------------------------------
 
 
-def upload_file(request):
-    pass
+def model_form_upload(request):
+    pprint(request.method)
+    if request.method == 'POST':
+        form = StudentForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            student = Student.objects.get(pk = request.user.student.id)
+            student.profile_image = form
+            student.save()
+    else:
+        pass
+    return render(request, 'model_form_upload.html', {
+        'form': form
+    })
