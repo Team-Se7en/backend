@@ -13,11 +13,15 @@ router.register("professors", views.ProfessorViewSet)
 router.register("positions", views.PositionViewSet, basename="positions")
 router.register("tags", views.TagListViewSet)
 router.register("requests", views.RequestViewSet, basename="request")
-router.register("stud_requests", views.StudentRequestListSearchViewSet, basename="stud_request")
+router.register(
+    "stud_requests", views.StudentRequestListSearchViewSet, basename="stud_request"
+)
 router.register("admissions", views.AdmissionViewSet, basename="admission")
 router.register("userinfo", views.UserInfoViewSet, basename="userinfo")
 router.register("top_students", views.Top5StudentsViewSet, basename="top_students")
-router.register("top_professors", views.Top5ProfessorsViewSet, basename="top_professors")
+router.register(
+    "top_professors", views.Top5ProfessorsViewSet, basename="top_professors"
+)
 router.register(
     "prof_own_position_filter",
     views.ProfessorOwnPositionFilteringViewSet,
@@ -50,7 +54,16 @@ router.register(
 )
 router.register("landing", views.LandingViewSet, basename="landing")
 router.register("notifications", views.NotificationViewSet, basename="notification")
-
+router.register("chat_list", views.ChatListViewSet, basename="chat_list")
+router.register("messages", views.ChatMessagesViewSet, basename="chat_messages")
+router.register(
+    "message_last_seen_update",
+    views.UpdateLastSeenMessageViewSet,
+    basename="update_last_seen",
+)
+router.register("create_message", views.CreateMessageViewSet, basename="create_message")
+router.register("delete_message",views.DeleteMessageViewSet)
+router.register("edit_message",views.EditMessageViewSet,basename="edit_message")
 
 professors_router = routers.NestedSimpleRouter(router, "professors", lookup="professor")
 

@@ -4,8 +4,11 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_countries.serializer_fields import CountryField as CountrySerializer
 from eduportal.models import Position
+from ticketing_system.models import *
 from rest_framework import serializers
 from django.db.models import Avg
+
+from pprint import pprint
 
 from .models import *
 from .utils.views import get_user_type
@@ -816,3 +819,105 @@ class ProfessorPositionSearchSerializer(BasePositionSerializer):
             return pos.professor.university.id
         except:
             return None
+
+
+# Chat System Serializers ------------------------------------------------------
+
+
+class ChatSystemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = [
+            "id",
+            "group_name",
+            "part_of_last_message",
+            "time_of_the_last_message",
+            "person_of_the_last_message",
+            "chat_enable",
+            "unseen_messages_flag",
+        ]
+
+    part_of_last_message = serializers.SerializerMethodField()
+    time_of_the_last_message = serializers.SerializerMethodField()
+    person_of_the_last_message = serializers.SerializerMethodField()
+    unseen_messages_flag = serializers.SerializerMethodField()
+
+    def get_person_of_the_last_message(self, chat: ChatSystem):
+        last_message = chat.messages.order_by("-send_time").first()
+        if last_message is None:
+            return None
+        return last_message.user.first_name + last_message.user.last_name
+
+    def get_time_of_the_last_message(self, chat: ChatSystem):
+        last_message = chat.messages.order_by("send_time").reverse().first()
+        if last_message is None:
+            return None
+        return last_message.send_time
+
+    def get_part_of_last_message(self, chat: ChatSystem):
+        last_message = chat.messages.order_by("send_time").reverse().first()
+        if last_message is None:
+            return None
+        return last_message.text[:50]
+
+    def get_unseen_messages_flag(self, chat: ChatSystem):
+        if chat.messages is None:
+            return False
+        query_set = Message.objects.filter(related_chat_group=chat.pk)
+        query_set = query_set.exclude(user__id=self.context["request"].user.id)
+        query_set = query_set.filter(seen_flag=False)
+        if query_set.exists():
+            return True
+        return False
+
+
+class RetrieveMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = [
+            "id",
+            "text",
+            "send_time",
+            "chat_id",
+            "is_student",
+            "sender",
+        ]
+
+    chat_id = serializers.SerializerMethodField()
+    is_student = serializers.SerializerMethodField()
+    sender = serializers.SerializerMethodField()
+
+    def get_chat_id(self, message: Message):
+        return message.related_chat_group.id
+
+    def get_is_student(self, message: Message):
+        if message.user is None:
+            return True
+        return message.user.is_student
+
+    def get_sender(self, message: Message):
+        return message.user.first_name + " " + message.user.last_name
+
+
+class UpdateMessageLastSeenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["seen_flag"]
+
+
+class CreateMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["text", "related_chat_group", "user"]
+
+
+class DeleteMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["id"]
+
+
+class EditMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["text"]
