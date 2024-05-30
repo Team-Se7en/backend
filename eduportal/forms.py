@@ -1,14 +1,14 @@
 from django import forms
-from .models import Student, Professor
+from .models import Image
 
 
 class StudentForm(forms.ModelForm):
     class Meta:
-        model = Student
-        fields = ("profile_image",)
+        model = Image
+        fields = ("image",)
 
 
 class ProfessorForm(forms.ModelForm):
     class Meta:
-        model = Professor
-        fields = ("profile_image",)
+        model = Image
+        fields = ("image",)

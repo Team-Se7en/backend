@@ -1048,16 +1048,19 @@ class EditMessageViewSet(UpdateModelMixin, GenericViewSet):
 
 
 def model_form_upload(request):
-    pprint(request.method)
     if request.method == 'POST':
-        form = StudentForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            student = Student.objects.get(pk = request.user.student.id)
-            student.profile_image = form
-            student.save()
-    else:
-        pass
-    return render(request, 'model_form_upload.html', {
-        'form': form
-    })
+        if request.user.is_student:
+            form = StudentForm(request.POST, request.FILES)
+            if form.is_valid():
+                form.save()
+                student = Student.objects.get(pk = request.user.student.id)
+                student.profile_image = form
+                student.save()
+        elif not request.user.is_student:
+            form = ProfessorForm(request.POST, request.FILES)
+            if form.is_valid():
+                form.save()
+                professor = Professor.objects.get(pk = request.user.professor.id)
+                professor.profile_image = form
+                professor.save()
+    return Response('ok')

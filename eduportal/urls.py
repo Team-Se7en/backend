@@ -135,7 +135,7 @@ urlpatterns = [
         name="student-cv",
     ),
     path(
-        "upload_image/",
+        "model_form_upload/",
         views.model_form_upload
     )
 ]
