@@ -3,9 +3,9 @@ from pprint import pprint
 from random import sample
 from django.contrib.auth import get_user_model
 from django.db.models import Prefetch, Min, Count, Avg
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404,render
 from django_filters.rest_framework import DjangoFilterBackend
-from django.http import Http404
+from django.http import Http404,HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -20,6 +20,7 @@ from .permissions import *
 from .serializers import *
 from .utils.views import *
 from .filters import *
+from .forms import *
 
 User = get_user_model()
 
@@ -1027,15 +1028,39 @@ class CreateMessageViewSet(CreateModelMixin, GenericViewSet):
             return Response(
                 "It's not your turn.", status=status.HTTP_405_METHOD_NOT_ALLOWED
             )
-        request.data['user'] = request.user.id
+        request.data["user"] = request.user.id
         return super().create(request, *args, **kwargs)
 
-class DeleteMessageViewSet(DestroyModelMixin,GenericViewSet):
+
+class DeleteMessageViewSet(DestroyModelMixin, GenericViewSet):
     serializer_class = DeleteMessageSerializer
-    permission_classes = [IsAuthenticated,IsOwnMessage]
+    permission_classes = [IsAuthenticated, IsOwnMessage]
     queryset = Message.objects.all()
 
-class EditMessageViewSet(UpdateModelMixin,GenericViewSet):
+
+class EditMessageViewSet(UpdateModelMixin, GenericViewSet):
     serializer_class = EditMessageSerializer
-    permission_classes = [IsAuthenticated,IsOwnMessage]
+    permission_classes = [IsAuthenticated, IsOwnMessage]
     queryset = Message.objects.all()
+
+
+# Upload Image View Sets -------------------------------------------------------
+
+
+def model_form_upload(request):
+    if request.method == 'POST':
+        if request.user.is_student:
+            form = StudentForm(request.POST, request.FILES)
+            if form.is_valid():
+                form.save()
+                student = Student.objects.get(pk = request.user.student.id)
+                student.profile_image = form
+                student.save()
+        elif not request.user.is_student:
+            form = ProfessorForm(request.POST, request.FILES)
+            if form.is_valid():
+                form.save()
+                professor = Professor.objects.get(pk = request.user.professor.id)
+                professor.profile_image = form
+                professor.save()
+    return Response('ok')
