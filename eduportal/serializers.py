@@ -91,12 +91,12 @@ class UserDetailSerializer(serializers.ModelSerializer):
             return "Professor"
 
     def get_professor(self, user):
-        if user.is_student:
+        if (not user.is_authenticated) or user.is_student:
             return None
         return SimpleProfessorSerializer(user.professor).data
 
     def get_student(self, user):
-        if not user.is_student:
+        if (not user.is_authenticated) or (not user.is_student):
             return None
         return SimpleStudentSerializer(user.student).data
 
