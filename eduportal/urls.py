@@ -72,6 +72,12 @@ router.register(
     "professor_new_chat", views.NoChatStudentsListViewset, basename="newChatStudent"
 )
 router.register("start_new_chat", views.StartNewChatViewSet, basename="start_new_chat")
+router.register(
+    "number_of_new_messages",
+    views.NewMessagesCountViewSet,
+    basename="new_message_count",
+)
+
 
 professors_router = routers.NestedSimpleRouter(router, "professors", lookup="professor")
 
