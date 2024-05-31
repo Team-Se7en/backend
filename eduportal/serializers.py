@@ -923,6 +923,17 @@ class NoChatStudentsListSerializer(serializers.ModelSerializer):
             return student.university.name
 
 
+class UnseenChatsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = ["number"]
+
+    number = serializers.SerializerMethodField()
+
+    def get_number(self, chat: ChatSystem):
+        return self.context["number"]
+
+
 class StartNewChatSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSystem

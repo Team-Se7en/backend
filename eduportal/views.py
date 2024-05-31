@@ -1091,6 +1091,26 @@ class EditMessageViewSet(UpdateModelMixin, GenericViewSet):
     queryset = Message.objects.all()
 
 
+class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = UnseenChatsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        user = User.objects.get(pk=self.request.user.pk)
+        user_chat_membership = user.chats.all()
+        user_chats = ChatSystem.objects.filter(chat__in=user_chat_membership)
+        user_unseen_messages = (
+            Message.objects.filter(related_chat_group__in=user_chats)
+            .exclude(user=user)
+            .filter(seen_flag=False)
+        )
+        user_unseen_chats = user_chats.filter(messages__in=user_unseen_messages)
+        serializer = UnseenChatsSerializer(
+            user_unseen_chats, context={"number": user_unseen_chats.count()}
+        )
+        return Response(serializer.data)
+
+
 # Upload Image View Sets -------------------------------------------------------
 
 
