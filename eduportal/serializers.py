@@ -377,7 +377,7 @@ class StudentStatusMixin:
         my_requests = getattr(pos, "my_request", [])
         if my_requests:
             my_req = my_requests[0]
-            return StudentRequestDetailSerializer(my_req).data
+            return RequestListSeralizer(my_req).data
         return None
 
 
