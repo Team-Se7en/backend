@@ -840,6 +840,13 @@ class ChatSystemSerializer(serializers.ModelSerializer):
     time_of_the_last_message = serializers.SerializerMethodField()
     person_of_the_last_message = serializers.SerializerMethodField()
     unseen_messages_flag = serializers.SerializerMethodField()
+    group_name = serializers.SerializerMethodField()
+
+    def get_group_name(self, chat: ChatSystem):
+        person = chat.chat.participants.exclude(
+            pk=self.context["request"].user.id
+        ).first()
+        return " ".join([person.first_name, person.last_name])
 
     def get_person_of_the_last_message(self, chat: ChatSystem):
         last_message = chat.messages.order_by("-send_time").first()
@@ -868,6 +875,58 @@ class ChatSystemSerializer(serializers.ModelSerializer):
         if query_set.exists():
             return True
         return False
+
+
+class NoChatProfessorsListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = ["id", "name", "university"]
+
+    name = serializers.SerializerMethodField()
+    university = serializers.SerializerMethodField()
+
+    def get_name(self, chat: ChatSystem):
+        chat_members = chat.chat
+        professor = chat_members.participants.filter(is_student=False).first()
+        return " ".join([professor.first_name, professor.last_name])
+
+    def get_university(self, chat: ChatSystem):
+        chat_members = chat.chat
+        professor = chat_members.participants.filter(is_student=False).first()
+        professor = Professor.objects.get(user__pk=professor.pk)
+        if professor.university is None:
+            return None
+        else:
+            return professor.university.name
+
+
+class NoChatStudentsListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = ["id", "name", "university"]
+
+    name = serializers.SerializerMethodField()
+    university = serializers.SerializerMethodField()
+
+    def get_name(self, chat: ChatSystem):
+        chat_members = ChatMembers.objects.select_related("chat").get(chat__id=chat.pk)
+        student = chat_members.participants.filter(is_student=True).first()
+        return " ".join([student.first_name, student.last_name])
+
+    def get_university(self, chat: ChatSystem):
+        chat_members = chat.chat
+        student = chat_members.participants.filter(is_student=False).first()
+        student = Professor.objects.get(user__pk=student.pk)
+        if student.university is None:
+            return None
+        else:
+            return student.university.name
+
+
+class StartNewChatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = []
 
 
 class RetrieveMessageSerializer(serializers.ModelSerializer):
@@ -921,10 +980,11 @@ class EditMessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ["text"]
 
+
 # Profile Image Serializers ----------------------------------------------------
+
 
 class ProfileImageSerializers(serializers.ModelSerializer):
     class Meta:
         model = Image
-        fields = '__all__'
-
+        fields = "__all__"
