@@ -63,8 +63,15 @@ router.register(
     basename="update_last_seen",
 )
 router.register("create_message", views.CreateMessageViewSet, basename="create_message")
-router.register("delete_message",views.DeleteMessageViewSet)
-router.register("edit_message",views.EditMessageViewSet,basename="edit_message")
+router.register("delete_message", views.DeleteMessageViewSet)
+router.register("edit_message", views.EditMessageViewSet, basename="edit_message")
+router.register(
+    "student_new_chat", views.NoChatProfessorsListViewset, basename="newChatProfessor"
+)
+router.register(
+    "professor_new_chat", views.NoChatStudentsListViewset, basename="newChatStudent"
+)
+router.register("start_new_chat", views.StartNewChatViewSet, basename="start_new_chat")
 
 professors_router = routers.NestedSimpleRouter(router, "professors", lookup="professor")
 
@@ -134,10 +141,7 @@ urlpatterns = [
         views.CVAPIView.as_view(),
         name="student-cv",
     ),
-    path(
-        "model_form_upload/",
-        views.model_form_upload
-    )
+    path("model_form_upload/", views.model_form_upload),
 ]
 urlpatterns += router.urls
 urlpatterns += professors_router.urls

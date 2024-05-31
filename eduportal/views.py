@@ -3,9 +3,9 @@ from pprint import pprint
 from random import sample
 from django.contrib.auth import get_user_model
 from django.db.models import Prefetch, Min, Count, Avg
-from django.shortcuts import get_object_or_404,render
+from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
-from django.http import Http404,HttpResponse
+from django.http import Http404, HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -21,6 +21,9 @@ from .serializers import *
 from .utils.views import *
 from .filters import *
 from .forms import *
+
+from ticketing_system.models import *
+
 
 User = get_user_model()
 
@@ -509,6 +512,13 @@ class RequestViewSet(ModelViewSet):
         position.save()
         request_object.status = "PA"
         request_object.save()
+        new_chat = ChatSystem.objects.create(group_name=" ")
+        new_chat_members = ChatMembers.objects.create(chat=new_chat)
+        new_chat_members.participants.set(
+            [position.professor.user, request_object.student.user.id]
+        )
+        new_chat.save()
+        new_chat_members.save()
         return Response(status=status.HTTP_200_OK)
 
     @action(
@@ -978,13 +988,50 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
 
     def list(self, request, *args, **kwargs):
         query_1 = ChatMembers.objects.filter(participants__id=self.request.user.id)
-        base_query = ChatSystem.objects.prefetch_related("chat").filter(
-            chat__in=query_1
+        base_query = (
+            ChatSystem.objects.filter(start_chat=True)
+            .prefetch_related("chat")
+            .filter(chat__in=query_1)
         )
         serializer = ChatSystemSerializer(
             base_query, many=True, context={"request": request}
         )
         return Response(serializer.data)
+
+
+class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
+    serializer_class = NoChatProfessorsListSerializer
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def get_queryset(self):
+        user = User.objects.get(pk=self.request.user.id)
+        chats = ChatSystem.objects.filter(chat__in=user.chats.all()).filter(
+            start_chat=False
+        )
+        return chats
+
+
+class NoChatStudentsListViewset(ListModelMixin, GenericViewSet):
+    serializer_class = NoChatStudentsListSerializer
+    permission_classes = [IsAuthenticated, IsProfessor]
+
+    def get_queryset(self):
+        user = User.objects.get(pk=self.request.user.id)
+        chats = ChatSystem.objects.filter(chat__in=user.chats.all()).filter(
+            start_chat=False
+        )
+        return chats
+
+
+class StartNewChatViewSet(RetrieveModelMixin, GenericViewSet):
+    serializer_class = StartNewChatSerializer
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        chat = ChatSystem.objects.get(pk=kwargs["pk"])
+        chat.start_chat = True
+        chat.save()
+        return Response("Chat created", status=status.HTTP_200_OK)
 
 
 class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
@@ -1048,19 +1095,19 @@ class EditMessageViewSet(UpdateModelMixin, GenericViewSet):
 
 
 def model_form_upload(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         if request.user.is_student:
             form = StudentForm(request.POST, request.FILES)
             if form.is_valid():
                 form.save()
-                student = Student.objects.get(pk = request.user.student.id)
+                student = Student.objects.get(pk=request.user.student.id)
                 student.profile_image = form
                 student.save()
         elif not request.user.is_student:
             form = ProfessorForm(request.POST, request.FILES)
             if form.is_valid():
                 form.save()
-                professor = Professor.objects.get(pk = request.user.professor.id)
+                professor = Professor.objects.get(pk=request.user.professor.id)
                 professor.profile_image = form
                 professor.save()
-    return Response('ok')
+    return Response("ok")

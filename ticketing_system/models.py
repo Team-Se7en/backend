@@ -9,14 +9,14 @@ class ChatSystem(models.Model):
     group_name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     chat_enable = models.BooleanField(default=True)
+    start_chat = models.BooleanField(default=False)
+
 
 class Message(models.Model):
     text = models.TextField(max_length=255)
     send_time = models.DateTimeField(auto_now_add=True)
     related_chat_group = models.ForeignKey(
-        ChatSystem,
-        on_delete=models.CASCADE,
-        related_name='messages'
+        ChatSystem, on_delete=models.CASCADE, related_name="messages"
     )
     user = models.ForeignKey(
         USER_MODEL,
@@ -32,6 +32,4 @@ class ChatMembers(models.Model):
         on_delete=models.CASCADE,
         related_name="chat",
     )
-    participants = models.ManyToManyField(
-        USER_MODEL,
-    )
+    participants = models.ManyToManyField(USER_MODEL, related_name="chats")
