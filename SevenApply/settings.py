@@ -95,7 +95,7 @@ TEMPLATES = [
 
 TEMPLATE_DIRS = (os.path.join(BASE_DIR, "templates"),)
 
-WSGI_APPLICATION = "SevenApply.wsgi.application"
+# WSGI_APPLICATION = "SevenApply.wsgi.application"
 ASGI_APPLICATION = "SevenApply.asgi.application"
 
 CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
@@ -194,6 +194,10 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "UPDATE_LAST_LOGIN": True,
+}
+
+DEBUG_TOOLBAR_CONFIG = {
+    "SHOW_TOOLBAR_CALLBACK": lambda _request: DEBUG,
 }
 
 AUTH_USER_MODEL = "core.User"
