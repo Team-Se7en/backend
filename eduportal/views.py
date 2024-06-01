@@ -6,6 +6,7 @@ from django.db.models import Prefetch, Min, Count, Avg
 from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
 from django.http import Http404, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -1118,7 +1119,7 @@ class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
 
 # Upload Image View Sets -------------------------------------------------------
 
-
+@csrf_exempt
 def model_form_upload(request):
     if request.method == "POST":
         if request.user.is_student:
