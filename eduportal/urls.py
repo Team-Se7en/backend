@@ -13,11 +13,15 @@ router.register("professors", views.ProfessorViewSet)
 router.register("positions", views.PositionViewSet, basename="positions")
 router.register("tags", views.TagListViewSet)
 router.register("requests", views.RequestViewSet, basename="request")
-router.register("stud_requests", views.StudentRequestListSearchViewSet, basename="stud_request")
+router.register(
+    "stud_requests", views.StudentRequestListSearchViewSet, basename="stud_request"
+)
 router.register("admissions", views.AdmissionViewSet, basename="admission")
 router.register("userinfo", views.UserInfoViewSet, basename="userinfo")
 router.register("top_students", views.Top5StudentsViewSet, basename="top_students")
-router.register("top_professors", views.Top5ProfessorsViewSet, basename="top_professors")
+router.register(
+    "top_professors", views.Top5ProfessorsViewSet, basename="top_professors"
+)
 router.register(
     "prof_own_position_filter",
     views.ProfessorOwnPositionFilteringViewSet,
@@ -110,6 +114,7 @@ students_router.register(
 
 
 urlpatterns = [
+    path("notif_index", views.notif_index, name="index"),
     path(
         "professors/<int:professor_pk>/CV/",
         views.CVAPIView.as_view(),

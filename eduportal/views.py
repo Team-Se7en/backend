@@ -3,7 +3,8 @@ from pprint import pprint
 from random import sample
 from django.contrib.auth import get_user_model
 from django.db.models import Prefetch, Min, Count, Avg
-from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
 from django.http import Http404
 from rest_framework import viewsets, status
@@ -200,7 +201,9 @@ class StudentGetListViewSet(
     ListModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = Student.objects.select_related("user").prefetch_related("interest_tags").all()
+    queryset = (
+        Student.objects.select_related("user").prefetch_related("interest_tags").all()
+    )
     serializer_class = StudentGetListSerializer
     filter_backends = [SearchFilter]
     search_fields = ["user__first_name", "user__last_name", "university__name"]
@@ -825,6 +828,10 @@ class LanguageSkillViewSet(BaseCVItemViewSet):
 
 
 # Notification Views -----------------------------------------------------------
+
+
+def notif_index(request):
+    return render(request, "index.html")
 
 
 class NotificationViewSet(
