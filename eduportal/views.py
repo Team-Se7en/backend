@@ -1065,8 +1065,8 @@ class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         query_set = (
-            Message.objects.filter(related_chat_group=request.data.get("id"))
-            .select_related('user')
+            Message.objects.filter(related_chat_group__id=kwargs["pk"])
+            .select_related("user")
             .exclude(user__id=request.user.id)
             .filter(seen_flag=False)
             .update(seen_flag=True)
