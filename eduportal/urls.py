@@ -137,6 +137,7 @@ students_router.register(
 
 
 urlpatterns = [
+    path("notif_index", views.notif_index, name="index"),
     path(
         "professors/<int:professor_pk>/CV/",
         views.CVAPIView.as_view(),
