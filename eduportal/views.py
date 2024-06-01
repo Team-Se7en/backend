@@ -8,7 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.http import Http404, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
-from rest_framework.decorators import action,api_view
+from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.mixins import *
 from rest_framework.permissions import *
@@ -1120,7 +1120,6 @@ class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
 # Upload Image View Sets -------------------------------------------------------
 
 @csrf_exempt
-@api_view()
 def model_form_upload(request):
     if request.method == "POST":
         if request.user.is_student:
@@ -1137,4 +1136,4 @@ def model_form_upload(request):
                 professor = Professor.objects.get(pk=request.user.professor.id)
                 professor.profile_image = form
                 professor.save()
-    return Response("ok")
+    return HttpResponse("ok")
