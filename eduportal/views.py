@@ -1017,6 +1017,7 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
 class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
     serializer_class = NoChatProfessorsListSerializer
     permission_classes = [IsAuthenticated, IsStudent]
+    queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
         user = User.objects.get(pk=self.request.user.id)
@@ -1029,6 +1030,7 @@ class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
 class NoChatStudentsListViewset(ListModelMixin, GenericViewSet):
     serializer_class = NoChatStudentsListSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
+    queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
         user = User.objects.get(pk=self.request.user.id)
@@ -1041,6 +1043,7 @@ class NoChatStudentsListViewset(ListModelMixin, GenericViewSet):
 class StartNewChatViewSet(RetrieveModelMixin, GenericViewSet):
     serializer_class = StartNewChatSerializer
     permission_classes = [IsAuthenticated]
+    queryset = ChatSystem.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
         chat = ChatSystem.objects.get(pk=kwargs["pk"])
@@ -1052,6 +1055,7 @@ class StartNewChatViewSet(RetrieveModelMixin, GenericViewSet):
 class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
     serializer_class = RetrieveMessageSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
         base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
@@ -1077,6 +1081,7 @@ class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
 class CreateMessageViewSet(CreateModelMixin, GenericViewSet):
     serializer_class = CreateMessageSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Message.objects.all()
 
     def create(self, request, *args, **kwargs):
         last_chat = (
@@ -1109,6 +1114,7 @@ class EditMessageViewSet(UpdateModelMixin, GenericViewSet):
 class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
     serializer_class = UnseenChatsSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Message.objects.all()
 
     def list(self, request, *args, **kwargs):
         user = User.objects.get(pk=self.request.user.pk)
