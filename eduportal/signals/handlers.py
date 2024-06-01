@@ -1,13 +1,9 @@
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.db import transaction
 from django.db.models.signals import pre_save, post_save, post_delete, m2m_changed
 from django.dispatch import receiver
 
 from eduportal.models import *
-from ..serializers import NotificationSerializer
 
 
 @receiver(post_save, sender=get_user_model())
@@ -36,13 +32,11 @@ def create_professor_cv(sender, instance, created, **kwargs):
 
 
 @receiver(post_delete, sender=NotificationItem)
-@transaction.atomic
 def delete_notification(sender, instance, **kwargs):
     instance.notification.delete()
 
 
 @receiver(post_save, sender=Request)
-@transaction.atomic
 def create_request_notification(sender, instance, created, **kwargs):
     if created:
         content_type = ContentType.objects.get_for_model(instance)
@@ -60,7 +54,6 @@ def create_request_notification(sender, instance, created, **kwargs):
 
 
 @receiver(pre_save, sender=Request)
-@transaction.atomic
 def create_professor_response_notification(sender, instance, **kwargs):
     if instance.pk:
         old_instance = sender.objects.get(pk=instance.pk)
@@ -86,7 +79,6 @@ def create_professor_response_notification(sender, instance, **kwargs):
 
 
 @receiver(pre_save, sender=Request)
-@transaction.atomic
 def create_student_response_notification(sender, instance, **kwargs):
     if instance.pk:
         old_instance = sender.objects.get(pk=instance.pk)
@@ -112,7 +104,6 @@ def create_student_response_notification(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=Position)
-@transaction.atomic
 def mark_position_as_created(sender, instance, created, **kwargs):
     if created:
         created_positions = cache.get("created_positions", set())
@@ -121,7 +112,6 @@ def mark_position_as_created(sender, instance, created, **kwargs):
 
 
 @receiver(m2m_changed, sender=Position.tags2.through)
-@transaction.atomic
 def create_interested_students_notification(sender, instance, action, **kwargs):
     if action == "post_add":
         created_positions = cache.get("created_positions", set())
@@ -158,23 +148,3 @@ def create_interested_students_notification(sender, instance, action, **kwargs):
             created_positions.remove(instance.id)
             cache.set("created_positions", created_positions)
 
-
-@receiver(post_save, sender=Notification)
-def notification_created(sender, instance, created, **kwargs):
-    if created:
-
-        def send_notification():
-            channel_layer = get_channel_layer()
-            group_name = f"notification_{instance.user.id}"
-            serializer = NotificationSerializer(instance)
-            message = serializer.data
-
-            async_to_sync(channel_layer.group_send)(
-                group_name,
-                {
-                    "type": "send_notification",
-                    "message": message,
-                },
-            )
-
-        transaction.on_commit(send_notification)
