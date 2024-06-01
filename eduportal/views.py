@@ -1066,6 +1066,7 @@ class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
 
 class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
     serializer_class = UpdateMessageLastSeenSerializer
+    queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
         query_set = (
