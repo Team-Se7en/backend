@@ -4,8 +4,11 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_countries.serializer_fields import CountryField as CountrySerializer
 from eduportal.models import Position
+from ticketing_system.models import *
 from rest_framework import serializers
 from django.db.models import Avg
+
+from pprint import pprint
 
 from .models import *
 from .utils.views import get_user_type
@@ -25,6 +28,9 @@ class SimpleProfessorSerializer(
 class SimpleStudentSerializer(
     serializers.ModelSerializer,
 ):
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+
     status = serializers.CharField(source="get_status_display")
     major = serializers.CharField(source="get_major_display")
     gender = serializers.CharField(source="get_gender_display")
@@ -32,6 +38,12 @@ class SimpleStudentSerializer(
     class Meta:
         model = Student
         fields = "__all__"
+
+    def get_first_name(self, student: Student):
+        return student.user.first_name
+
+    def get_last_name(self, student: Student):
+        return student.user.last_name
 
 
 class SimpleUserSerializer(
@@ -46,12 +58,10 @@ class SimpleUserSerializer(
         ]
 
 
-class UserDetailSerializer(
-    serializers.ModelSerializer,
-):
-    user_type = serializers.SerializerMethodField("get_user_type")
-    professor = SimpleProfessorSerializer()
-    student = SimpleStudentSerializer()
+class UserDetailSerializer(serializers.ModelSerializer):
+    user_type = serializers.SerializerMethodField()
+    professor = serializers.SerializerMethodField()
+    student = serializers.SerializerMethodField()
 
     class Meta:
         model = apps.get_model(settings.AUTH_USER_MODEL)
@@ -73,7 +83,22 @@ class UserDetailSerializer(
         return fields
 
     def get_user_type(self, user):
-        return get_user_type(self.context["request"])
+        if user.is_anonymous:
+            return "Anonymous"
+        elif user.is_student:
+            return "Student"
+        else:
+            return "Professor"
+
+    def get_professor(self, user):
+        if (not user.is_authenticated) or user.is_student:
+            return None
+        return SimpleProfessorSerializer(user.professor).data
+
+    def get_student(self, user):
+        if (not user.is_authenticated) or (not user.is_student):
+            return None
+        return SimpleStudentSerializer(user.student).data
 
 
 # University Serializers -------------------------------------------------------
@@ -149,7 +174,6 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
             "user",
             "ssn",
             "major",
-            "profile_image",
             "interest_tags",
         ]
 
@@ -349,6 +373,13 @@ class StudentStatusMixin:
             return my_req.get_status_display()
         return super().get_status(pos)
 
+    def get_my_request(self, pos: Position):
+        my_requests = getattr(pos, "my_request", [])
+        if my_requests:
+            my_req = my_requests[0]
+            return RequestListSeralizer(my_req).data
+        return None
+
 
 class AnonymousPositionListSerializer(
     BasePositionListSerializer,
@@ -391,13 +422,25 @@ class StudentPositionDetailSerializer(
     StudentStatusMixin,
     BasePositionDetailSerializer,
 ):
-    remaining = serializers.SerializerMethodField("get_remaining")
+    remaining = serializers.SerializerMethodField()
+    my_request = serializers.SerializerMethodField()
 
 
 class ProfessorPositionDetailSerializer(
     BasePositionDetailSerializer,
 ):
     pass
+
+
+class OwnerPositionRequestDetailSerializer(
+    serializers.ModelSerializer,
+):
+    student = SimpleStudentSerializer()
+    status = serializers.CharField(source="get_status_display")
+
+    class Meta:
+        model = Request
+        fields = "__all__"
 
 
 class OwnerPositionDetailSerializer(
@@ -414,7 +457,7 @@ class OwnerPositionDetailSerializer(
 
     def get_requests(self, pos: Position):
         reqs = getattr(pos, "position_requests", [])
-        return RequestListSeralizer(reqs, many=True).data
+        return OwnerPositionRequestDetailSerializer(reqs, many=True).data
 
 
 class PositionUpdateSerializer(
@@ -753,6 +796,7 @@ class Top5ProfessorsSerializer(serializers.ModelSerializer):
             ]
         )
 
+
 class ProfessorPositionSearchSerializer(BasePositionSerializer):
     university_name = serializers.SerializerMethodField("get_university_name")
     university_id = serializers.SerializerMethodField("get_university_id")
@@ -774,3 +818,184 @@ class ProfessorPositionSearchSerializer(BasePositionSerializer):
             return pos.professor.university.id
         except:
             return None
+
+
+# Chat System Serializers ------------------------------------------------------
+
+
+class ChatSystemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = [
+            "id",
+            "group_name",
+            "part_of_last_message",
+            "time_of_the_last_message",
+            "person_of_the_last_message",
+            "chat_enable",
+            "unseen_messages_flag",
+        ]
+
+    part_of_last_message = serializers.SerializerMethodField()
+    time_of_the_last_message = serializers.SerializerMethodField()
+    person_of_the_last_message = serializers.SerializerMethodField()
+    unseen_messages_flag = serializers.SerializerMethodField()
+    group_name = serializers.SerializerMethodField()
+
+    def get_group_name(self, chat: ChatSystem):
+        person = chat.chat.participants.exclude(
+            pk=self.context["request"].user.id
+        ).first()
+        return " ".join([person.first_name, person.last_name])
+
+    def get_person_of_the_last_message(self, chat: ChatSystem):
+        last_message = chat.messages.order_by("-send_time").first()
+        if last_message is None:
+            return None
+        return last_message.user.first_name + last_message.user.last_name
+
+    def get_time_of_the_last_message(self, chat: ChatSystem):
+        last_message = chat.messages.order_by("send_time").reverse().first()
+        if last_message is None:
+            return None
+        return last_message.send_time
+
+    def get_part_of_last_message(self, chat: ChatSystem):
+        last_message = chat.messages.order_by("send_time").reverse().first()
+        if last_message is None:
+            return None
+        return last_message.text[:50]
+
+    def get_unseen_messages_flag(self, chat: ChatSystem):
+        if chat.messages is None:
+            return False
+        query_set = Message.objects.filter(related_chat_group=chat.pk)
+        query_set = query_set.exclude(user__id=self.context["request"].user.id)
+        query_set = query_set.filter(seen_flag=False)
+        if query_set.exists():
+            return True
+        return False
+
+
+class NoChatProfessorsListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = ["id", "name", "university"]
+
+    name = serializers.SerializerMethodField()
+    university = serializers.SerializerMethodField()
+
+    def get_name(self, chat: ChatSystem):
+        chat_members = chat.chat
+        professor = chat_members.participants.filter(is_student=False).first()
+        return " ".join([professor.first_name, professor.last_name])
+
+    def get_university(self, chat: ChatSystem):
+        chat_members = chat.chat
+        professor = chat_members.participants.filter(is_student=False).first()
+        professor = Professor.objects.get(user__pk=professor.pk)
+        if professor.university is None:
+            return None
+        else:
+            return professor.university.name
+
+
+class NoChatStudentsListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = ["id", "name", "university"]
+
+    name = serializers.SerializerMethodField()
+    university = serializers.SerializerMethodField()
+
+    def get_name(self, chat: ChatSystem):
+        chat_members = ChatMembers.objects.select_related("chat").get(chat__id=chat.pk)
+        student = chat_members.participants.filter(is_student=True).first()
+        return " ".join([student.first_name, student.last_name])
+
+    def get_university(self, chat: ChatSystem):
+        chat_members = chat.chat
+        student = chat_members.participants.filter(is_student=False).first()
+        student = Professor.objects.get(user__pk=student.pk)
+        if student.university is None:
+            return None
+        else:
+            return student.university.name
+
+
+class UnseenChatsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = ["number"]
+
+    number = serializers.SerializerMethodField()
+
+    def get_number(self, chat: ChatSystem):
+        return self.context["number"]
+
+
+class StartNewChatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSystem
+        fields = []
+
+
+class RetrieveMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = [
+            "id",
+            "text",
+            "send_time",
+            "chat_id",
+            "is_student",
+            "sender",
+        ]
+
+    chat_id = serializers.SerializerMethodField()
+    is_student = serializers.SerializerMethodField()
+    sender = serializers.SerializerMethodField()
+
+    def get_chat_id(self, message: Message):
+        return message.related_chat_group.id
+
+    def get_is_student(self, message: Message):
+        if message.user is None:
+            return True
+        return message.user.is_student
+
+    def get_sender(self, message: Message):
+        return message.user.first_name + " " + message.user.last_name
+
+
+class UpdateMessageLastSeenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["seen_flag"]
+
+
+class CreateMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["text", "related_chat_group", "user"]
+
+
+class DeleteMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["id"]
+
+
+class EditMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ["text"]
+
+
+# Profile Image Serializers ----------------------------------------------------
+
+
+class ProfileImageSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Image
+        fields = "__all__"

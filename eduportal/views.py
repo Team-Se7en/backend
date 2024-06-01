@@ -3,10 +3,9 @@ from pprint import pprint
 from random import sample
 from django.contrib.auth import get_user_model
 from django.db.models import Prefetch, Min, Count, Avg
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -21,6 +20,10 @@ from .permissions import *
 from .serializers import *
 from .utils.views import *
 from .filters import *
+from .forms import *
+
+from ticketing_system.models import *
+
 
 User = get_user_model()
 
@@ -186,7 +189,9 @@ class UniversityViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         match self.action:
-            case "list" | "create" | "partial_update" | "update" | "destroy":
+            case "list":
+                return [AllowAny()]
+            case "create" | "partial_update" | "update" | "destroy":
                 return [IsAdminUser()]
             case "retrieve":
                 return [AllowAny()]
@@ -345,7 +350,13 @@ class PositionViewSet(ModelViewSet):
                     case "Student":
                         return StudentPositionDetailSerializer
                     case "Professor":
-                        if self.get_object().professor.user == user:
+                        if (
+                            Position.objects.only("professor")
+                            .select_related("professor", "professor__user")
+                            .get(pk=self.kwargs["pk"])
+                            .professor.user
+                            == user
+                        ):
                             return OwnerPositionDetailSerializer
                         return ProfessorPositionDetailSerializer
                 return None
@@ -366,8 +377,11 @@ class PositionViewSet(ModelViewSet):
             queryset = queryset.exclude(professor__user__id=user.id)
         if self.action == "retrieve":
             if user_type == "Professor":
-                requests_for_position = Request.objects.filter(
-                    position__professor__user=user
+                requests_for_position = (
+                    Request.objects.filter(position__professor__user=user)
+                    .exclude(status="PR")
+                    .select_related("student", "student__user")
+                    .prefetch_related("student__interest_tags")
                 )
                 queryset = queryset.prefetch_related(
                     Prefetch(
@@ -498,6 +512,13 @@ class RequestViewSet(ModelViewSet):
         position.save()
         request_object.status = "PA"
         request_object.save()
+        new_chat = ChatSystem.objects.create(group_name=" ")
+        new_chat_members = ChatMembers.objects.create(chat=new_chat)
+        new_chat_members.participants.set(
+            [position.professor.user, request_object.student.user.id]
+        )
+        new_chat.save()
+        new_chat_members.save()
         return Response(status=status.HTTP_200_OK)
 
     @action(
@@ -960,3 +981,157 @@ class Top5ProfessorsViewSet(ListModelMixin, GenericViewSet):
         seralizer = Top5ProfessorsSerializer(top_professors, many=True)
 
         return Response(seralizer.data)
+
+
+# Chat List ViewSet ------------------------------------------------------------
+
+
+class ChatListViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = ChatSystemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        query_1 = ChatMembers.objects.filter(participants__id=self.request.user.id)
+        base_query = (
+            ChatSystem.objects.filter(start_chat=True)
+            .prefetch_related("chat")
+            .filter(chat__in=query_1)
+        )
+        serializer = ChatSystemSerializer(
+            base_query, many=True, context={"request": request}
+        )
+        return Response(serializer.data)
+
+
+class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
+    serializer_class = NoChatProfessorsListSerializer
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def get_queryset(self):
+        user = User.objects.get(pk=self.request.user.id)
+        chats = ChatSystem.objects.filter(chat__in=user.chats.all()).filter(
+            start_chat=False
+        )
+        return chats
+
+
+class NoChatStudentsListViewset(ListModelMixin, GenericViewSet):
+    serializer_class = NoChatStudentsListSerializer
+    permission_classes = [IsAuthenticated, IsProfessor]
+
+    def get_queryset(self):
+        user = User.objects.get(pk=self.request.user.id)
+        chats = ChatSystem.objects.filter(chat__in=user.chats.all()).filter(
+            start_chat=False
+        )
+        return chats
+
+
+class StartNewChatViewSet(RetrieveModelMixin, GenericViewSet):
+    serializer_class = StartNewChatSerializer
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        chat = ChatSystem.objects.get(pk=kwargs["pk"])
+        chat.start_chat = True
+        chat.save()
+        return Response("Chat created", status=status.HTTP_200_OK)
+
+
+class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
+    serializer_class = RetrieveMessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
+        sorted_query = base_query.order_by("send_time")
+        serializer = RetrieveMessageSerializer(sorted_query, many=True)
+        return Response(serializer.data)
+
+
+class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
+    serializer_class = UpdateMessageLastSeenSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        query_set = (
+            Message.objects.filter(related_chat_group=request.data.get("id"))
+            .select_related(User)
+            .exclude(user__id=request.user.id)
+            .filter(seen_flag=False)
+            .update(seen_flag=True)
+        )
+        return Response(status=status.HTTP_200_OK)
+
+
+class CreateMessageViewSet(CreateModelMixin, GenericViewSet):
+    serializer_class = CreateMessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        last_chat = (
+            Message.objects.filter(
+                related_chat_group=request.data.get("related_chat_group")
+            )
+            .order_by("-send_time")
+            .first()
+        )
+        if last_chat is not None and last_chat.user.id == request.user.id:
+            return Response(
+                "It's not your turn.", status=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
+        request.data["user"] = request.user.id
+        return super().create(request, *args, **kwargs)
+
+
+class DeleteMessageViewSet(DestroyModelMixin, GenericViewSet):
+    serializer_class = DeleteMessageSerializer
+    permission_classes = [IsAuthenticated, IsOwnMessage]
+    queryset = Message.objects.all()
+
+
+class EditMessageViewSet(UpdateModelMixin, GenericViewSet):
+    serializer_class = EditMessageSerializer
+    permission_classes = [IsAuthenticated, IsOwnMessage]
+    queryset = Message.objects.all()
+
+
+class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = UnseenChatsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        user = User.objects.get(pk=self.request.user.pk)
+        user_chat_membership = user.chats.all()
+        user_chats = ChatSystem.objects.filter(chat__in=user_chat_membership)
+        user_unseen_messages = (
+            Message.objects.filter(related_chat_group__in=user_chats)
+            .exclude(user=user)
+            .filter(seen_flag=False)
+        )
+        user_unseen_chats = user_chats.filter(messages__in=user_unseen_messages)
+        serializer = UnseenChatsSerializer(
+            user_unseen_chats, context={"number": user_unseen_chats.count()}
+        )
+        return Response(serializer.data)
+
+
+# Upload Image View Sets -------------------------------------------------------
+
+
+def model_form_upload(request):
+    if request.method == "POST":
+        if request.user.is_student:
+            form = StudentForm(request.POST, request.FILES)
+            if form.is_valid():
+                form.save()
+                student = Student.objects.get(pk=request.user.student.id)
+                student.profile_image = form
+                student.save()
+        elif not request.user.is_student:
+            form = ProfessorForm(request.POST, request.FILES)
+            if form.is_valid():
+                form.save()
+                professor = Professor.objects.get(pk=request.user.professor.id)
+                professor.profile_image = form
+                professor.save()
+    return Response("ok")

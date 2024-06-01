@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "djoser",
     "eduportal",
+    "ticketing_system",
     "core",
 ]
 
