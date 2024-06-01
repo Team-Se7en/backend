@@ -551,6 +551,15 @@ class RequestViewSet(ModelViewSet):
         position.save()
         request_object.status = "SR"
         request_object.save()
+        professor_user = request_object.position.professor.user
+        student_user = request_object.student.user.chats
+        chat = (
+            professor_user.chats.intersecion(student_user.chats)
+            .filter(chat_enable=True)
+            .get()
+        )
+        chat.enable_chat = False
+        chat.save()
         return Response(status=status.HTTP_200_OK)
 
     @action(
@@ -1008,6 +1017,7 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
 class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
     serializer_class = NoChatProfessorsListSerializer
     permission_classes = [IsAuthenticated, IsStudent]
+    queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
         user = User.objects.get(pk=self.request.user.id)
@@ -1020,6 +1030,7 @@ class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
 class NoChatStudentsListViewset(ListModelMixin, GenericViewSet):
     serializer_class = NoChatStudentsListSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
+    queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
         user = User.objects.get(pk=self.request.user.id)
@@ -1032,6 +1043,7 @@ class NoChatStudentsListViewset(ListModelMixin, GenericViewSet):
 class StartNewChatViewSet(RetrieveModelMixin, GenericViewSet):
     serializer_class = StartNewChatSerializer
     permission_classes = [IsAuthenticated]
+    queryset = ChatSystem.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
         chat = ChatSystem.objects.get(pk=kwargs["pk"])
@@ -1043,6 +1055,7 @@ class StartNewChatViewSet(RetrieveModelMixin, GenericViewSet):
 class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
     serializer_class = RetrieveMessageSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
         base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
@@ -1056,8 +1069,8 @@ class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         query_set = (
-            Message.objects.filter(related_chat_group=request.data.get("id"))
-            .select_related(User)
+            Message.objects.filter(related_chat_group__id=kwargs["pk"])
+            .select_related("user")
             .exclude(user__id=request.user.id)
             .filter(seen_flag=False)
             .update(seen_flag=True)
@@ -1068,6 +1081,7 @@ class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
 class CreateMessageViewSet(CreateModelMixin, GenericViewSet):
     serializer_class = CreateMessageSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Message.objects.all()
 
     def create(self, request, *args, **kwargs):
         last_chat = (
@@ -1100,11 +1114,14 @@ class EditMessageViewSet(UpdateModelMixin, GenericViewSet):
 class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
     serializer_class = UnseenChatsSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Message.objects.all()
 
     def list(self, request, *args, **kwargs):
         user = User.objects.get(pk=self.request.user.pk)
         user_chat_membership = user.chats.all()
-        user_chats = ChatSystem.objects.filter(chat__in=user_chat_membership)
+        user_chats = ChatSystem.objects.filter(chat__in=user_chat_membership).filter(
+            start_chat=True
+        )
         user_unseen_messages = (
             Message.objects.filter(related_chat_group__in=user_chats)
             .exclude(user=user)
@@ -1118,6 +1135,7 @@ class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
 
 
 # Upload Image View Sets -------------------------------------------------------
+
 
 @csrf_exempt
 def model_form_upload(request):
