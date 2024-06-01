@@ -551,6 +551,15 @@ class RequestViewSet(ModelViewSet):
         position.save()
         request_object.status = "SR"
         request_object.save()
+        professor_user = request_object.position.professor.user
+        student_user = request_object.student.user.chats
+        chat = (
+            professor_user.chats.intersecion(student_user.chats)
+            .filter(chat_enable=True)
+            .get()
+        )
+        chat.enable_chat = False
+        chat.save()
         return Response(status=status.HTTP_200_OK)
 
     @action(
@@ -1057,7 +1066,7 @@ class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
     def retrieve(self, request, *args, **kwargs):
         query_set = (
             Message.objects.filter(related_chat_group=request.data.get("id"))
-            .select_related(User)
+            .select_related('user')
             .exclude(user__id=request.user.id)
             .filter(seen_flag=False)
             .update(seen_flag=True)
@@ -1104,7 +1113,9 @@ class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
     def list(self, request, *args, **kwargs):
         user = User.objects.get(pk=self.request.user.pk)
         user_chat_membership = user.chats.all()
-        user_chats = ChatSystem.objects.filter(chat__in=user_chat_membership)
+        user_chats = ChatSystem.objects.filter(chat__in=user_chat_membership).filter(
+            start_chat=True
+        )
         user_unseen_messages = (
             Message.objects.filter(related_chat_group__in=user_chats)
             .exclude(user=user)
@@ -1118,6 +1129,7 @@ class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
 
 
 # Upload Image View Sets -------------------------------------------------------
+
 
 @csrf_exempt
 def model_form_upload(request):
