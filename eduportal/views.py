@@ -989,6 +989,7 @@ class Top5ProfessorsViewSet(ListModelMixin, GenericViewSet):
 class ChatListViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ChatSystemSerializer
     permission_classes = [IsAuthenticated]
+    queryset = ChatSystem.objects.all()
 
     def list(self, request, *args, **kwargs):
         query_1 = ChatMembers.objects.filter(participants__id=self.request.user.id)
