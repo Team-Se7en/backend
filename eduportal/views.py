@@ -985,6 +985,7 @@ class Top5ProfessorsViewSet(ListModelMixin, GenericViewSet):
 class ChatListViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ChatSystemSerializer
     permission_classes = [IsAuthenticated]
+    queryset = ChatSystem.objects.all()
 
     def list(self, request, *args, **kwargs):
         query_1 = ChatMembers.objects.filter(participants__id=self.request.user.id)
@@ -1121,7 +1122,7 @@ def model_form_upload(request):
             if form.is_valid():
                 form.save()
                 student = Student.objects.get(pk=request.user.student.id)
-                student.profile_image = form
+                student.profile_image = form.cleaned_data['image']
                 student.save()
         elif not request.user.is_student:
             form = ProfessorForm(request.POST, request.FILES)
