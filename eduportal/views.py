@@ -1122,7 +1122,7 @@ def model_form_upload(request):
             if form.is_valid():
                 form.save()
                 student = Student.objects.get(pk=request.user.student.id)
-                student.profile_image = form
+                student.profile_image = form.cleaned_data['image']
                 student.save()
         elif not request.user.is_student:
             form = ProfessorForm(request.POST, request.FILES)
