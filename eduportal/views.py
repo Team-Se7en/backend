@@ -370,7 +370,7 @@ class PositionViewSet(ModelViewSet):
         user_type = get_user_type(self.request)
 
         queryset = Position.objects.select_related(
-            "professor", "professor__user"
+            "professor", "professor__user", "professor__university"
         ).prefetch_related("tags", "tags2")
 
         if self.action == "list":
@@ -849,6 +849,10 @@ class LanguageSkillViewSet(BaseCVItemViewSet):
 
 
 # Notification Views -----------------------------------------------------------
+
+
+def notif_index(request):
+    return render(request, "index.html")
 
 
 class NotificationViewSet(
