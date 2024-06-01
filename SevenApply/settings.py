@@ -95,7 +95,7 @@ TEMPLATES = [
 
 TEMPLATE_DIRS = (os.path.join(BASE_DIR, "templates"),)
 
-WSGI_APPLICATION = "SevenApply.wsgi.application"
+# WSGI_APPLICATION = "SevenApply.wsgi.application"
 ASGI_APPLICATION = "SevenApply.asgi.application"
 
 CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
