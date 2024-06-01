@@ -31,9 +31,11 @@
 
 {% block js_script %}
 <script>
-    // setup chat scoket
-    const notifySocket = new WebSocket('ws://' + window.location.host + '/ws/notifications');
-
+    // Determine the WebSocket protocol
+    var wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    
+    // Setup chat socket
+    const notifySocket = new WebSocket(wsProtocol + window.location.host + '/ws/notifications');
 
     // on socket open
     notifySocket.onopen = function (e) {
@@ -47,11 +49,14 @@
 
     // on receiving message on group
     notifySocket.onmessage = function (e) {
+        console.log('Message received.');
+        console.log(e);
         const data = JSON.parse(e.data);
-        const message = data.message;
-        // Call the setMessage function to add the new li element
+        console.log(data);
+        const message = `Received Notification:\n${JSON.stringify(data, null, 2)}`;
+        console.log(message);
+        
         setMessage(message);
-
     };
 
     function setMessage(message) {
@@ -69,6 +74,7 @@
 
         // Get the ul element with the id "notify"
         var ulElement = document.getElementById('notify');
+        console.log(ulElement);
 
         // Append the new li element to the ul element
         ulElement.appendChild(newLi);
