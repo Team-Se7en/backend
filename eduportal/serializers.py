@@ -991,11 +991,3 @@ class EditMessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ["text"]
 
-
-# Profile Image Serializers ----------------------------------------------------
-
-
-class ProfileImageSerializers(serializers.ModelSerializer):
-    class Meta:
-        model = Image
-        fields = "__all__"

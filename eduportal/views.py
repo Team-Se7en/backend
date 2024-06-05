@@ -1134,25 +1134,3 @@ class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
         )
         return Response(serializer.data)
 
-
-# Upload Image View Sets -------------------------------------------------------
-
-
-@csrf_exempt
-def model_form_upload(request):
-    if request.method == "POST":
-        if request.user.is_student:
-            form = StudentForm(request.POST, request.FILES)
-            if form.is_valid():
-                form.save()
-                student = Student.objects.get(pk=request.user.student.id)
-                student.profile_image = form.cleaned_data["image"]
-                student.save()
-        elif not request.user.is_student:
-            form = ProfessorForm(request.POST, request.FILES)
-            if form.is_valid():
-                form.save()
-                professor = Professor.objects.get(pk=request.user.professor.id)
-                professor.profile_image = form
-                professor.save()
-    return HttpResponse("ok")
