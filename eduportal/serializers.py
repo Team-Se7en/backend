@@ -175,8 +175,10 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
             "ssn",
             "major",
             "interest_tags",
+            "image",
         ]
 
+    image = serializers.ImageField(read_only=True)
     user = SimpleUserSerializer()
     student = serializers.SerializerMethodField(method_name="username")
 
@@ -228,6 +230,7 @@ class ProfessorSerializer(
     serializers.ModelSerializer,
 ):
     user = SimpleUserSerializer()
+    image = serializers.ImageField(read_only=True)
 
     class Meta:
         model = Professor
@@ -238,7 +241,7 @@ class ProfessorSerializer(
             "department",
             "birth_date",
             "major",
-            "profile_image",
+            "image",
         ]
 
     def update(self, instance, validated_data):
@@ -991,3 +994,17 @@ class EditMessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ["text"]
 
+
+# Profile Image Serializer -----------------------------------------------------
+
+
+class StudentImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentImage
+        fields = ["id", "image"]
+
+
+class ProfessorImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProfessorImage
+        fields = ["id", "image"]
