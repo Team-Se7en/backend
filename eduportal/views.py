@@ -1134,3 +1134,57 @@ class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
         )
         return Response(serializer.data)
 
+
+# Image Profile ViewSet --------------------------------------------------------
+
+
+class ProfessorImageProfileViewSet(
+    CreateModelMixin,
+    GenericViewSet,
+):
+    serializer_class = ProfessorImageSerializer
+    queryset = ProfessorImage.objects.all()
+    permission_classes = [IsAuthenticated, IsProfessor]
+
+    def create(self, request, *args, **kwargs):
+        professor = Professor.objects.get(pk=self.request.user.professor.pk)
+        if professor.image is not None:
+            professor.image.delete()
+        serializer = ProfessorImageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        professor.image = serializer.save()
+        professor.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["GET"])
+    def delete_image(self, request):
+        professor = Professor.objects.get(pk=request.user.professor.pk)
+        if professor.image is not None:
+            professor.image.delete()
+        return Response(status=status.HTTP_200_OK)
+
+
+class StudentImageProfileViewSet(
+    CreateModelMixin,
+    GenericViewSet,
+):
+    serializer_class = StudentImageSerializer
+    permission_classes = [IsAuthenticated, IsStudent]
+    queryset = StudentImage.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        student = Student.objects.get(pk=self.request.user.student.pk)
+        if student.image is not None:
+            student.image.delete()
+        serializer = StudentImageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        student.image = serializer.save()
+        student.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["GET"])
+    def delete_image(self, request):
+        student = Student.objects.get(pk=request.user.student.pk)
+        if student.image is not None:
+            student.image.delete()
+        return Response(status=status.HTTP_200_OK)
