@@ -177,13 +177,13 @@ def notification_created(sender, instance, created, **kwargs):
             print("notification_created:\t\tDebug:\t\tStarting the action.")
 
             channel_layer = get_channel_layer()
-            print("notification_created:\t\tDebug:\t\tRetrieved channel")
+            print(f"notification_created:\t\tDebug:\t\tRetrieved channel: {channel_layer}")
             group_name = f"notification_{instance.user.id}"
-            print("notification_created:\t\tDebug:\t\tRetrieved group")
+            print(f"notification_created:\t\tDebug:\t\tRetrieved group: {group_name}")
             serializer = NotificationSerializer(instance)
-            print("notification_created:\t\tDebug:\t\tRetrieved serializer")
+            print(f"notification_created:\t\tDebug:\t\tRetrieved serializer: {serializer}")
             message = serializer.data
-            print("notification_created:\t\tDebug:\t\tRetrieved message")
+            print(f"notification_created:\t\tDebug:\t\tRetrieved message: {message}")
 
             async_to_sync(channel_layer.group_send)(
                 group_name,
