@@ -14,6 +14,21 @@ from .models import *
 from .utils.views import get_user_type
 
 
+# Profile Image Serializer -----------------------------------------------------
+
+
+class StudentImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentImage
+        fields = ["image"]
+
+
+class ProfessorImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProfessorImage
+        fields = ["image"]
+
+
 # User Serializers -------------------------------------------------------------
 
 
@@ -152,7 +167,7 @@ class StudentGetListSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     major = serializers.CharField(source="get_major_display")
-
+    image = StudentImageSerializer(read_only=True)
     user = UserDetailSerializer()
 
 
@@ -175,8 +190,10 @@ class OwnStudentProfileSerializer(serializers.ModelSerializer):
             "ssn",
             "major",
             "interest_tags",
+            "image",
         ]
 
+    image = StudentImageSerializer(read_only=True)
     user = SimpleUserSerializer()
     student = serializers.SerializerMethodField(method_name="username")
 
@@ -228,6 +245,7 @@ class ProfessorSerializer(
     serializers.ModelSerializer,
 ):
     user = SimpleUserSerializer()
+    image = ProfessorImageSerializer(read_only=True)
 
     class Meta:
         model = Professor
@@ -238,7 +256,7 @@ class ProfessorSerializer(
             "department",
             "birth_date",
             "major",
-            "profile_image",
+            "image",
         ]
 
     def update(self, instance, validated_data):
@@ -743,8 +761,9 @@ class UniversityLocationSerializer(serializers.ModelSerializer):
 class Top5StudentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ("student_name", "major", "university", "gpa")
+        fields = ("student_name", "major", "university", "gpa", "image")
 
+    image = StudentImageSerializer(read_only=True)
     university = UniversityLocationSerializer()
     gpa = serializers.SerializerMethodField()
     major = serializers.CharField(source="get_major_display")
@@ -781,8 +800,10 @@ class Top5ProfessorsSerializer(serializers.ModelSerializer):
             "university",
             "department",
             "project_num",
+            "image",
         )
 
+    image = ProfessorImageSerializer(read_only=True)
     project_num = serializers.IntegerField()
     university = UniversityLocationSerializer()
     major = serializers.CharField(source="get_major_display")
@@ -990,12 +1011,3 @@ class EditMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ["text"]
-
-
-# Profile Image Serializers ----------------------------------------------------
-
-
-class ProfileImageSerializers(serializers.ModelSerializer):
-    class Meta:
-        model = Image
-        fields = "__all__"

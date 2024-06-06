@@ -77,7 +77,16 @@ router.register(
     views.NewMessagesCountViewSet,
     basename="new_message_count",
 )
-
+router.register(
+    "professor_upload_image",
+    views.ProfessorImageProfileViewSet,
+    basename="professor-upload-image",
+)
+router.register(
+    "student_upload_image",
+    views.StudentImageProfileViewSet,
+    basename="student-upload-image",
+)
 
 professors_router = routers.NestedSimpleRouter(router, "professors", lookup="professor")
 
@@ -148,7 +157,6 @@ urlpatterns = [
         views.CVAPIView.as_view(),
         name="student-cv",
     ),
-    path("model_form_upload/", views.model_form_upload),
 ]
 urlpatterns += router.urls
 urlpatterns += professors_router.urls
