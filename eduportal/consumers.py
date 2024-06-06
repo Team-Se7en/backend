@@ -24,7 +24,15 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         pass
 
     async def send_notification(self, event):
-        message = event["message"]
-        message_data = json.dumps(message)
-        await self.send(text_data=message_data)
-        print(f"sent notif: {message_data}\n to user {self.user_id}")
+        print("send_notification:\t\tDebug:\t\tStarting sending of ws message.")
+        
+        try:
+            message = event["message"]
+            print("send_notification:\t\tDebug:\t\tRetrieved event message.")
+            message_data = json.dumps(message)
+            print("send_notification:\t\tDebug:\t\tRetrieved message data json.")
+            await self.send(text_data=message_data)
+            print(f"sent notif: {message_data}\n to user {self.user_id}")
+        except Exception as e:
+            print("send_notification:\t\tDebug:\t\tException occured:")
+            print(f"send_notification:\t\tDebug:\t\t{e}")
