@@ -77,7 +77,16 @@ router.register(
     views.NewMessagesCountViewSet,
     basename="new_message_count",
 )
-
+router.register(
+    "professor_upload_image",
+    views.ProfessorImageProfileViewSet,
+    basename="professor-upload-image",
+)
+router.register(
+    "student_upload_image",
+    views.StudentImageProfileViewSet,
+    basename="student-upload-image",
+)
 
 professors_router = routers.NestedSimpleRouter(router, "professors", lookup="professor")
 
