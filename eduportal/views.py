@@ -865,13 +865,6 @@ def notif_index(request):
     return render(request, "index.html")
 
 
-from rest_framework.mixins import RetrieveModelMixin, DestroyModelMixin, ListModelMixin
-from rest_framework.viewsets import GenericViewSet
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
-
-
 class NotificationViewSet(
     PaginatedActionMixin,
     RetrieveModelMixin,
