@@ -487,7 +487,7 @@ class RequestViewSet(ModelViewSet):
             return StudentCreateRequestSerializer
         if self.action == "retrieve":
             if self.request.user.is_student:
-                return StudentRequestDetailSerializer
+                return RequestListSeralizer
             else:
                 return ProfessorRequestDetailSerializer
         if self.action == "list":
