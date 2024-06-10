@@ -35,7 +35,7 @@
     var wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     
     // Setup chat socket
-    const notifySocket = new WebSocket(wsProtocol + window.location.host + '/ws/notifications');
+    const notifySocket = new WebSocket(wsProtocol + window.location.host + '/ws/notifications/');
 
     // on socket open
     notifySocket.onopen = function (e) {
