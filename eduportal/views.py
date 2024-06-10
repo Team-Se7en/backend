@@ -17,6 +17,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 
 from .models import *
+from .pagination import PaginatedActionMixin
 from .permissions import *
 from .serializers import *
 from .utils.views import *
@@ -255,6 +256,7 @@ class StudentProfileViewSet(
 
 
 class ProfessorViewSet(
+    PaginatedActionMixin,
     CreateModelMixin,
     RetrieveModelMixin,
     ListModelMixin,
@@ -291,8 +293,7 @@ class ProfessorViewSet(
         positions = positions.select_related(
             "professor", "professor__user"
         ).prefetch_related("tags", "tags2")
-        serializer = OwnerPositionListSerializer(positions, many=True)
-        return Response(serializer.data)
+        return self.paginated_action(positions, OwnerPositionListSerializer)
 
     @action(detail=False, methods=["GET"], permission_classes=[IsProfessor])
     def my_recent_positions(self, request):
@@ -303,8 +304,7 @@ class ProfessorViewSet(
         positions = positions.select_related(
             "professor", "professor__user"
         ).prefetch_related("tags", "tags2")
-        serializer = OwnerPositionListSerializer(positions, many=True)
-        return Response(serializer.data)
+        return self.paginated_action(positions, OwnerPositionListSerializer)
 
 
 # Position Views ---------------------------------------------------------------
@@ -866,6 +866,7 @@ def notif_index(request):
 
 
 class NotificationViewSet(
+    PaginatedActionMixin,
     RetrieveModelMixin,
     DestroyModelMixin,
     ListModelMixin,
@@ -894,20 +895,17 @@ class NotificationViewSet(
     @action(detail=False, methods=["GET"])
     def new_notifications(self, request):
         notifications = self.get_queryset().filter(read=False)
-        serializer = self.get_serializer(notifications, many=True)
-        return Response(serializer.data)
+        return self.paginated_action(notifications, NotificationSerializer)
 
     @action(detail=False, methods=["GET"])
     def all_notifications(self, request):
         notifications = self.get_queryset()
-        serializer = self.get_serializer(notifications, many=True)
-        return Response(serializer.data)
+        return self.paginated_action(notifications, NotificationSerializer)
 
     @action(detail=False, methods=["GET"])
     def bookmarked_notifications(self, request):
         notifications = self.get_queryset().filter(bookmarked=True)
-        serializer = self.get_serializer(notifications, many=True)
-        return Response(serializer.data)
+        return self.paginated_action(notifications, NotificationSerializer)
 
     @action(detail=True, methods=["GET"])
     def mark_as_read(self, request, pk=None):
