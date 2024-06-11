@@ -1016,10 +1016,8 @@ class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
     queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
-        user = User.objects.get(pk=self.request.user.id)
-        chats = ChatSystem.objects.filter(chat__in=user.chats.all()).filter(
-            start_chat=False
-        )
+        user = self.request.user
+        chats = ChatSystem.objects.filter(participants=user).filter(start_chat=False)
         return chats
 
 
