@@ -1063,13 +1063,12 @@ class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
-        query_set = (
-            Message.objects.filter(related_chat_group__id=kwargs["pk"])
-            .select_related("user")
-            .exclude(user__id=request.user.id)
-            .filter(seen_flag=False)
-            .update(seen_flag=True)
-        )
+        chat = ChatSystem.objects.get(pk=kwargs["pk"])
+        messages = chat.messages.all()
+        user = request.user
+        other_user_messages = messages.exclude(user=user)
+        not_seen_messags = other_user_messages.filter(seen_flag=False)
+        updated_messages = not_seen_messags.update(seen_flag=True)
         return Response(status=status.HTTP_200_OK)
 
 
