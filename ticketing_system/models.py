@@ -10,6 +10,10 @@ class ChatSystem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     chat_enable = models.BooleanField(default=True)
     start_chat = models.BooleanField(default=False)
+    participants = models.ManyToManyField(
+        USER_MODEL,
+        related_name="chats",
+    )
 
 
 class Message(models.Model):
@@ -24,12 +28,3 @@ class Message(models.Model):
         on_delete=models.SET_NULL,
     )
     seen_flag = models.BooleanField(default=False)
-
-
-class ChatMembers(models.Model):
-    chat = models.OneToOneField(
-        ChatSystem,
-        on_delete=models.CASCADE,
-        related_name="chat",
-    )
-    participants = models.ManyToManyField(USER_MODEL, related_name="chats")
