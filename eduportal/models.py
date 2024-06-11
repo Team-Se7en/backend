@@ -16,8 +16,12 @@ UserModel = get_user_model()
 # Create your models here.
 
 
-class Image(models.Model):
-    image = models.FileField(upload_to="image/")
+class StudentImage(models.Model):
+    image = models.ImageField(upload_to="images/student_images")
+
+
+class ProfessorImage(models.Model):
+    image = models.ImageField(upload_to="images/professor_images")
 
 
 class University(models.Model):
@@ -74,22 +78,20 @@ class Student(models.Model):
         related_name="students",
         blank=True,
     )
-    profile_image = models.OneToOneField(Image, on_delete=models.SET_NULL, null=True)
+    image = models.OneToOneField(
+        StudentImage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
 
     notification_item = GenericRelation(
         "NotificationItem", related_query_name="student"
     )
 
     def delete(self, *args, **kwargs):
-        self.profile_image.delete()
+        self.image.delete()
         super().delete(*args, **kwargs)
-
-    def save(self, *args, **kwargs):
-        if self.pk is not None:
-            old_self = Student.objects.get(pk=self.pk)
-            if old_self.profile_image.name != self.profile_image.name:
-                old_self.profile_image.delete(save=False)
-        super().save(*args, **kwargs)
 
 
 class Professor(models.Model):
@@ -100,18 +102,16 @@ class Professor(models.Model):
     department = models.CharField(max_length=255)
     birth_date = models.DateField(null=True, blank=True)
     major = models.IntegerField(choices=MajorTypeChoices, null=True)
-    profile_image = models.OneToOneField(Image, on_delete=models.SET_NULL, null=True)
+    image = models.OneToOneField(
+        ProfessorImage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
 
     def delete(self, *args, **kwargs):
-        self.profile_image.delete()
+        self.image.delete()
         super().delete(*args, **kwargs)
-
-    def save(self, *args, **kwargs):
-        if self.pk is not None:
-            old_self = Professor.objects.get(pk=self.pk)
-            if old_self.profile_image.name != self.profile_image.name:
-                old_self.profile_image.delete(save=False)
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}"

@@ -51,12 +51,20 @@ def create_request_notification(sender, instance, created, **kwargs):
             content_type=content_type, object_id=instance.id
         )
 
+        print(
+            f"create_request_notification:\tDebug:\t\t{'Created' if created else 'Retrieved'} NotificationItem object."
+        )
+
         notif = Notification.objects.create(
             notification_type=NotificationTypeChoices.STUDENT_CREATED_REQUEST,
             user=instance.position.professor.user,
         )
 
+        print("create_request_notification:\tDebug:\t\tCreated Notification object.")
+
         notification_item.notifications.add(notif)
+
+        print("create_request_notification:\tDebug:\t\tCreated Notification object.")
 
 
 @receiver(pre_save, sender=Request)
@@ -163,11 +171,19 @@ def create_interested_students_notification(sender, instance, action, **kwargs):
 def notification_created(sender, instance, created, **kwargs):
     if created:
 
+        print("notification_created:\t\tDebug:\t\tBefore defining the action.")
+
         def send_notification():
+            print("notification_created:\t\tDebug:\t\tStarting the action.")
+
             channel_layer = get_channel_layer()
+            print(f"notification_created:\t\tDebug:\t\tRetrieved channel: {channel_layer}")
             group_name = f"notification_{instance.user.id}"
+            print(f"notification_created:\t\tDebug:\t\tRetrieved group: {group_name}")
             serializer = NotificationSerializer(instance)
+            print(f"notification_created:\t\tDebug:\t\tRetrieved serializer: {serializer}")
             message = serializer.data
+            print(f"notification_created:\t\tDebug:\t\tRetrieved message: {message}")
 
             async_to_sync(channel_layer.group_send)(
                 group_name,
@@ -177,4 +193,11 @@ def notification_created(sender, instance, created, **kwargs):
                 },
             )
 
+            print("notification_created:\t\tDebug:\t\tGroup send initiated.")
+            
+
+        print("notification_created:\t\tDebug:\t\tDefined the action.")
+        
         transaction.on_commit(send_notification)
+        
+        print("notification_created:\t\tDebug:\t\tRegistered the transaction.")

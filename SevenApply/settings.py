@@ -95,7 +95,7 @@ TEMPLATES = [
 
 TEMPLATE_DIRS = (os.path.join(BASE_DIR, "templates"),)
 
-WSGI_APPLICATION = "SevenApply.wsgi.application"
+# WSGI_APPLICATION = "SevenApply.wsgi.application"
 ASGI_APPLICATION = "SevenApply.asgi.application"
 
 CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
@@ -163,7 +163,10 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PAGINATION_CLASS": "eduportal.pagination.CustomPagination",
+    "PAGE_SIZE": 5,
 }
+
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "API Documentation",
@@ -194,6 +197,10 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "UPDATE_LAST_LOGIN": True,
+}
+
+DEBUG_TOOLBAR_CONFIG = {
+    "SHOW_TOOLBAR_CALLBACK": lambda _request: DEBUG,
 }
 
 AUTH_USER_MODEL = "core.User"

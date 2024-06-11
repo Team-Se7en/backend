@@ -6,6 +6,7 @@ from django.db.models import Prefetch, Min, Count, Avg
 from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
 from django.http import Http404, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -16,6 +17,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 
 from .models import *
+from .pagination import PaginatedActionMixin
 from .permissions import *
 from .serializers import *
 from .utils.views import *
@@ -254,6 +256,7 @@ class StudentProfileViewSet(
 
 
 class ProfessorViewSet(
+    PaginatedActionMixin,
     CreateModelMixin,
     RetrieveModelMixin,
     ListModelMixin,
@@ -290,8 +293,7 @@ class ProfessorViewSet(
         positions = positions.select_related(
             "professor", "professor__user"
         ).prefetch_related("tags", "tags2")
-        serializer = OwnerPositionListSerializer(positions, many=True)
-        return Response(serializer.data)
+        return self.paginated_action(positions, OwnerPositionListSerializer)
 
     @action(detail=False, methods=["GET"], permission_classes=[IsProfessor])
     def my_recent_positions(self, request):
@@ -302,8 +304,7 @@ class ProfessorViewSet(
         positions = positions.select_related(
             "professor", "professor__user"
         ).prefetch_related("tags", "tags2")
-        serializer = OwnerPositionListSerializer(positions, many=True)
-        return Response(serializer.data)
+        return self.paginated_action(positions, OwnerPositionListSerializer)
 
 
 # Position Views ---------------------------------------------------------------
@@ -486,7 +487,7 @@ class RequestViewSet(ModelViewSet):
             return StudentCreateRequestSerializer
         if self.action == "retrieve":
             if self.request.user.is_student:
-                return StudentRequestDetailSerializer
+                return RequestListSeralizer
             else:
                 return ProfessorRequestDetailSerializer
         if self.action == "list":
@@ -550,6 +551,15 @@ class RequestViewSet(ModelViewSet):
         position.save()
         request_object.status = "SR"
         request_object.save()
+        professor_user = request_object.position.professor.user
+        student_user = request_object.student.user.chats
+        chat = (
+            professor_user.chats.intersecion(student_user.chats)
+            .filter(chat_enable=True)
+            .get()
+        )
+        chat.enable_chat = False
+        chat.save()
         return Response(status=status.HTTP_200_OK)
 
     @action(
@@ -856,6 +866,7 @@ def notif_index(request):
 
 
 class NotificationViewSet(
+    PaginatedActionMixin,
     RetrieveModelMixin,
     DestroyModelMixin,
     ListModelMixin,
@@ -884,20 +895,17 @@ class NotificationViewSet(
     @action(detail=False, methods=["GET"])
     def new_notifications(self, request):
         notifications = self.get_queryset().filter(read=False)
-        serializer = self.get_serializer(notifications, many=True)
-        return Response(serializer.data)
+        return self.paginated_action(notifications, NotificationSerializer)
 
     @action(detail=False, methods=["GET"])
     def all_notifications(self, request):
         notifications = self.get_queryset()
-        serializer = self.get_serializer(notifications, many=True)
-        return Response(serializer.data)
+        return self.paginated_action(notifications, NotificationSerializer)
 
     @action(detail=False, methods=["GET"])
     def bookmarked_notifications(self, request):
         notifications = self.get_queryset().filter(bookmarked=True)
-        serializer = self.get_serializer(notifications, many=True)
-        return Response(serializer.data)
+        return self.paginated_action(notifications, NotificationSerializer)
 
     @action(detail=True, methods=["GET"])
     def mark_as_read(self, request, pk=None):
@@ -1007,6 +1015,7 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
 class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
     serializer_class = NoChatProfessorsListSerializer
     permission_classes = [IsAuthenticated, IsStudent]
+    queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
         user = User.objects.get(pk=self.request.user.id)
@@ -1019,6 +1028,7 @@ class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
 class NoChatStudentsListViewset(ListModelMixin, GenericViewSet):
     serializer_class = NoChatStudentsListSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
+    queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
         user = User.objects.get(pk=self.request.user.id)
@@ -1031,6 +1041,7 @@ class NoChatStudentsListViewset(ListModelMixin, GenericViewSet):
 class StartNewChatViewSet(RetrieveModelMixin, GenericViewSet):
     serializer_class = StartNewChatSerializer
     permission_classes = [IsAuthenticated]
+    queryset = ChatSystem.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
         chat = ChatSystem.objects.get(pk=kwargs["pk"])
@@ -1042,6 +1053,7 @@ class StartNewChatViewSet(RetrieveModelMixin, GenericViewSet):
 class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
     serializer_class = RetrieveMessageSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
         base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
@@ -1052,11 +1064,12 @@ class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
 
 class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
     serializer_class = UpdateMessageLastSeenSerializer
+    queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
         query_set = (
-            Message.objects.filter(related_chat_group=request.data.get("id"))
-            .select_related(User)
+            Message.objects.filter(related_chat_group__id=kwargs["pk"])
+            .select_related("user")
             .exclude(user__id=request.user.id)
             .filter(seen_flag=False)
             .update(seen_flag=True)
@@ -1067,6 +1080,7 @@ class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
 class CreateMessageViewSet(CreateModelMixin, GenericViewSet):
     serializer_class = CreateMessageSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Message.objects.all()
 
     def create(self, request, *args, **kwargs):
         last_chat = (
@@ -1099,11 +1113,14 @@ class EditMessageViewSet(UpdateModelMixin, GenericViewSet):
 class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
     serializer_class = UnseenChatsSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Message.objects.all()
 
     def list(self, request, *args, **kwargs):
         user = User.objects.get(pk=self.request.user.pk)
         user_chat_membership = user.chats.all()
-        user_chats = ChatSystem.objects.filter(chat__in=user_chat_membership)
+        user_chats = ChatSystem.objects.filter(chat__in=user_chat_membership).filter(
+            start_chat=True
+        )
         user_unseen_messages = (
             Message.objects.filter(related_chat_group__in=user_chats)
             .exclude(user=user)
@@ -1116,23 +1133,56 @@ class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
         return Response(serializer.data)
 
 
-# Upload Image View Sets -------------------------------------------------------
+# Image Profile ViewSet --------------------------------------------------------
 
 
-def model_form_upload(request):
-    if request.method == "POST":
-        if request.user.is_student:
-            form = StudentForm(request.POST, request.FILES)
-            if form.is_valid():
-                form.save()
-                student = Student.objects.get(pk=request.user.student.id)
-                student.profile_image = form
-                student.save()
-        elif not request.user.is_student:
-            form = ProfessorForm(request.POST, request.FILES)
-            if form.is_valid():
-                form.save()
-                professor = Professor.objects.get(pk=request.user.professor.id)
-                professor.profile_image = form
-                professor.save()
-    return Response("ok")
+class ProfessorImageProfileViewSet(
+    CreateModelMixin,
+    GenericViewSet,
+):
+    serializer_class = ProfessorImageSerializer
+    queryset = ProfessorImage.objects.all()
+    permission_classes = [IsAuthenticated, IsProfessor]
+
+    def create(self, request, *args, **kwargs):
+        professor = Professor.objects.get(pk=self.request.user.professor.pk)
+        if professor.image is not None:
+            professor.image.delete()
+        serializer = ProfessorImageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        professor.image = serializer.save()
+        professor.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["GET"])
+    def delete_image(self, request):
+        professor = Professor.objects.get(pk=request.user.professor.pk)
+        if professor.image is not None:
+            professor.image.delete()
+        return Response(status=status.HTTP_200_OK)
+
+
+class StudentImageProfileViewSet(
+    CreateModelMixin,
+    GenericViewSet,
+):
+    serializer_class = StudentImageSerializer
+    permission_classes = [IsAuthenticated, IsStudent]
+    queryset = StudentImage.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        student = Student.objects.get(pk=self.request.user.student.pk)
+        if student.image is not None:
+            student.image.delete()
+        serializer = StudentImageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        student.image = serializer.save()
+        student.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["GET"])
+    def delete_image(self, request):
+        student = Student.objects.get(pk=request.user.student.pk)
+        if student.image is not None:
+            student.image.delete()
+        return Response(status=status.HTTP_200_OK)
