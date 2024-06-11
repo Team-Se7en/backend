@@ -1000,11 +1000,9 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
     queryset = ChatSystem.objects.all()
 
     def list(self, request, *args, **kwargs):
-        query_1 = ChatMembers.objects.filter(participants__id=self.request.user.id)
-        base_query = (
-            ChatSystem.objects.filter(start_chat=True)
-            .prefetch_related("chat")
-            .filter(chat__in=query_1)
+        user = self.request.user
+        base_query = ChatSystem.objects.filter(start_chat=True).filter(
+            participants=user
         )
         serializer = ChatSystemSerializer(
             base_query, many=True, context={"request": request}
