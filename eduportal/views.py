@@ -1050,8 +1050,10 @@ class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
-        base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
-        sorted_query = base_query.order_by("send_time")
+        chat_pk = self.kwargs["pk"]
+        chat = ChatSystem.objects.get(pk=chat_pk)
+        messages = chat.messages.all()
+        sorted_query = messages.order_by("send_time")
         serializer = RetrieveMessageSerializer(sorted_query, many=True)
         return Response(serializer.data)
 
