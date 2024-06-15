@@ -62,7 +62,7 @@ class IsRequestOwner(BasePermission):
 
 class IsNotificationOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
-        return obj.user == request.user
+        return obj.user_id == request.user.id
     
 class IsOwnMessage(BasePermission):
     def has_object_permission(self, request, view, obj):
