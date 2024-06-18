@@ -720,30 +720,38 @@ class NotificationSerializer(serializers.ModelSerializer):
         exclude = []
 
     def get_position(self, obj: Notification):
+        pos = None
         request = self.get_model_item(obj, Request)
 
         if request:
-            return NotifPositionSerializer(request.position).data
+            pos = request.position
         else:
-            position = self.get_model_item(obj, Position)
+            pos = self.get_model_item(obj, Position)
 
-            if position:
-                return NotifPositionSerializer(position).data
+        if pos:
+            return NotifPositionSerializer(pos).data
         return None
 
     def get_student(self, obj: Notification):
-        request = self.get_model_item(obj, Request)
+        stu = None
 
+        request = self.get_model_item(obj, Request)
         if request:
-            return NotifStudentSerializer(request.student).data
+            stu = request.student
+        else:
+            stu = self.get_model_item(obj, Student) 
+
+        if stu:
+            return NotifStudentSerializer(stu).data
         return None
 
     def get_model_item(self, obj: Notification, model):
-        pass
-        item: NotificationItem
-        for item in obj.items.all():
-            if isinstance(item.content_object, model):
-                return item.content_object
+        item = None
+        item_list = getattr(obj, f"{model.__name__.lower()}_items", [])
+        if item_list:
+            item = item_list[0]
+        if item:
+            return item.content_object
         return None
 
 
