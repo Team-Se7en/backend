@@ -274,7 +274,7 @@ class ProfessorViewSet(
         permission_classes=[IsProfessor],
     )
     def me(self, request):
-        professor = get_object_or_404(Professor, user_id=request.user.id)
+        professor = request.user.professor
         if request.method == "GET":
             serializer = ProfessorSerializer(professor)
             return Response(serializer.data)
@@ -288,21 +288,21 @@ class ProfessorViewSet(
 
     @action(detail=False, methods=["GET"], permission_classes=[IsProfessor])
     def my_positions(self, request):
-        professor = get_object_or_404(Professor, user_id=request.user.id)
+        professor = request.user.professor
         positions = Position.objects.filter(professor=professor)
         positions = positions.select_related(
-            "professor", "professor__user"
+            "professor", "professor__user", "professor__university"
         ).prefetch_related("tags", "tags2")
         return self.paginated_action(positions, OwnerPositionListSerializer)
 
     @action(detail=False, methods=["GET"], permission_classes=[IsProfessor])
     def my_recent_positions(self, request):
-        professor = get_object_or_404(Professor, user_id=request.user.id)
+        professor = request.user.professor
         positions = Position.objects.filter(professor=professor).order_by(
             "-start_date"
         )[:5]
         positions = positions.select_related(
-            "professor", "professor__user"
+            "professor", "professor__user", "professor__university"
         ).prefetch_related("tags", "tags2")
         return self.paginated_action(positions, OwnerPositionListSerializer)
 
@@ -514,12 +514,10 @@ class RequestViewSet(ModelViewSet):
         request_object.status = "PA"
         request_object.save()
         new_chat = ChatSystem.objects.create(group_name=" ")
-        new_chat_members = ChatMembers.objects.create(chat=new_chat)
-        new_chat_members.participants.set(
+        new_chat.participants.set(
             [position.professor.user, request_object.student.user.id]
         )
         new_chat.save()
-        new_chat_members.save()
         return Response(status=status.HTTP_200_OK)
 
     @action(
@@ -875,26 +873,87 @@ class NotificationViewSet(
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated, IsNotificationOwner]
 
-    def get_queryset(self):
-        return (
-            Notification.objects.filter(user=self.request.user)
-            .order_by("-id")
-            .prefetch_related("items")
+    def get_raw_queryset(self, **filters):
+        return Notification.objects.filter(user=self.request.user, **filters)
+
+    def get_queryset(self, **filters):
+        queryset = self.get_raw_queryset(**filters).order_by("-id")
+
+        content_type_ids = (
+            NotificationItem.objects.filter(notifications__in=queryset)
+            .values_list("content_type", flat=True)
+            .distinct()
         )
+
+        for ct_id in content_type_ids:
+            qs = NotificationItem.objects.filter(content_type=ct_id)
+
+            match ct_id:
+                case 10:  # request
+                    queryset = queryset.prefetch_related(
+                        Prefetch(
+                            "items",
+                            queryset=qs.prefetch_related(
+                                "content_object",
+                                "content_object__student",
+                                "content_object__student__university",
+                                "content_object__student__user",
+                                "content_object__position",
+                                "content_object__position__professor",
+                                "content_object__position__professor__university",
+                                "content_object__position__professor__user",
+                            ),
+                            to_attr="request_items",
+                        )
+                    )
+                case 9:  # position
+                    queryset = queryset.prefetch_related(
+                        Prefetch(
+                            "items",
+                            queryset=qs.prefetch_related(
+                                "content_object",
+                                "content_object__professor",
+                                "content_object__professor__university",
+                                "content_object__professor__user",
+                            ),
+                            to_attr="position_items",
+                        )
+                    )
+                case 8:  # student
+                    queryset = queryset.prefetch_related(
+                        Prefetch(
+                            "items",
+                            queryset=qs.prefetch_related(
+                                "content_object",
+                                "content_object__university",
+                                "content_object__user",
+                            ),
+                            to_attr="student_items",
+                        )
+                    )
+                case _:
+                    queryset = queryset.prefetch_related(
+                        Prefetch(
+                            "items",
+                            queryset=qs,
+                            to_attr=f"items_{ct_id}",
+                        )
+                    )
+        return queryset
 
     @action(detail=False, methods=["GET"])
     def all_count(self, request):
-        count = self.get_queryset().count()
+        count = self.get_raw_queryset().count()
         return Response({"count": count})
 
     @action(detail=False, methods=["GET"])
     def new_count(self, request):
-        count = self.get_queryset().filter(read=False).count()
+        count = self.get_raw_queryset(read=False).count()
         return Response({"count": count})
 
     @action(detail=False, methods=["GET"])
     def new_notifications(self, request):
-        notifications = self.get_queryset().filter(read=False)
+        notifications = self.get_queryset(read=False)
         return self.paginated_action(notifications, NotificationSerializer)
 
     @action(detail=False, methods=["GET"])
@@ -904,12 +963,14 @@ class NotificationViewSet(
 
     @action(detail=False, methods=["GET"])
     def bookmarked_notifications(self, request):
-        notifications = self.get_queryset().filter(bookmarked=True)
+        notifications = self.get_queryset(bookmarked=True)
         return self.paginated_action(notifications, NotificationSerializer)
 
     @action(detail=True, methods=["GET"])
     def mark_as_read(self, request, pk=None):
-        notification = self.get_object()
+        notification = get_object_or_404(
+            Notification, user=request.user, pk=self.kwargs["pk"]
+        )
         notification.read = True
         notification.save()
         serializer = self.get_serializer(notification)
@@ -917,13 +978,15 @@ class NotificationViewSet(
 
     @action(detail=False, methods=["GET"])
     def read_all(self, request):
-        unread_notifications = self.get_queryset().filter(read=False)
+        unread_notifications = self.get_raw_queryset(read=False)
         unread_notifications.update(read=True)
         return Response({"detail": "All notifications have been marked as read."})
 
     @action(detail=True, methods=["GET"])
     def toggle_bookmark(self, request, pk=None):
-        notification = self.get_object()
+        notification = get_object_or_404(
+            Notification, user=request.user, pk=self.kwargs["pk"]
+        )
         notification.bookmarked = not notification.bookmarked
         notification.save()
         return Response(
@@ -934,7 +997,7 @@ class NotificationViewSet(
 
     @action(detail=False, methods=["GET"])
     def delete_all(self, request):
-        notifications = self.get_queryset().filter(bookmarked=False)
+        notifications = self.get_raw_queryset(bookmarked=False)
         count = notifications.count()
         notifications.delete()
         return Response(
@@ -1000,16 +1063,16 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
     queryset = ChatSystem.objects.all()
 
     def list(self, request, *args, **kwargs):
-        query_1 = ChatMembers.objects.filter(participants__id=self.request.user.id)
+        user = self.request.user.id
         base_query = (
             ChatSystem.objects.filter(start_chat=True)
-            .prefetch_related("chat")
-            .filter(chat__in=query_1)
+            .prefetch_related('participants')
+            .filter(participants__pk=user)
         )
         serializer = ChatSystemSerializer(
             base_query, many=True, context={"request": request}
         )
-        return Response(serializer.data)
+        return Response(serializer.data,status=status.HTTP_200_OK)
 
 
 class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
@@ -1018,10 +1081,8 @@ class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
     queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
-        user = User.objects.get(pk=self.request.user.id)
-        chats = ChatSystem.objects.filter(chat__in=user.chats.all()).filter(
-            start_chat=False
-        )
+        user = self.request.user
+        chats = ChatSystem.objects.filter(participants=user).filter(start_chat=False)
         return chats
 
 
@@ -1031,10 +1092,8 @@ class NoChatStudentsListViewset(ListModelMixin, GenericViewSet):
     queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
-        user = User.objects.get(pk=self.request.user.id)
-        chats = ChatSystem.objects.filter(chat__in=user.chats.all()).filter(
-            start_chat=False
-        )
+        user = self.request.user
+        chats = ChatSystem.objects.filter(participants=user).filter(start_chat=False)
         return chats
 
 
@@ -1056,8 +1115,10 @@ class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
-        base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
-        sorted_query = base_query.order_by("send_time")
+        chat_pk = self.kwargs["pk"]
+        chat = ChatSystem.objects.get(pk=chat_pk)
+        messages = chat.messages.all()
+        sorted_query = messages.order_by("send_time")
         serializer = RetrieveMessageSerializer(sorted_query, many=True)
         return Response(serializer.data)
 
@@ -1067,13 +1128,12 @@ class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
-        query_set = (
-            Message.objects.filter(related_chat_group__id=kwargs["pk"])
-            .select_related("user")
-            .exclude(user__id=request.user.id)
-            .filter(seen_flag=False)
-            .update(seen_flag=True)
-        )
+        chat = ChatSystem.objects.get(pk=kwargs["pk"])
+        messages = chat.messages.all()
+        user = request.user
+        other_user_messages = messages.exclude(user=user)
+        not_seen_messags = other_user_messages.filter(seen_flag=False)
+        updated_messages = not_seen_messags.update(seen_flag=True)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -1083,14 +1143,11 @@ class CreateMessageViewSet(CreateModelMixin, GenericViewSet):
     queryset = Message.objects.all()
 
     def create(self, request, *args, **kwargs):
-        last_chat = (
-            Message.objects.filter(
-                related_chat_group=request.data.get("related_chat_group")
-            )
-            .order_by("-send_time")
-            .first()
-        )
-        if last_chat is not None and last_chat.user.id == request.user.id:
+        chat_pk = request.data.get("related_chat_group")
+        chat = ChatSystem.objects.get(pk=chat_pk)
+        last_message = chat.messages.all().order_by("-send_time").first()
+        user = request.user
+        if last_message is not None and last_message.user == user:
             return Response(
                 "It's not your turn.", status=status.HTTP_405_METHOD_NOT_ALLOWED
             )
@@ -1117,18 +1174,11 @@ class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
 
     def list(self, request, *args, **kwargs):
         user = User.objects.get(pk=self.request.user.pk)
-        user_chat_membership = user.chats.all()
-        user_chats = ChatSystem.objects.filter(chat__in=user_chat_membership).filter(
-            start_chat=True
-        )
-        user_unseen_messages = (
-            Message.objects.filter(related_chat_group__in=user_chats)
-            .exclude(user=user)
-            .filter(seen_flag=False)
-        )
-        user_unseen_chats = user_chats.filter(messages__in=user_unseen_messages)
+        user_chats = user.chats.prefetch_related("messages").all()
+        chats_with_new_messages = user_chats.filter(messages__seen_flag=False)
+        number_of_new_messages = chats_with_new_messages.count()
         serializer = UnseenChatsSerializer(
-            user_unseen_chats, context={"number": user_unseen_chats.count()}
+            number_of_new_messages, context={"number": number_of_new_messages}
         )
         return Response(serializer.data)
 
