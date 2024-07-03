@@ -864,9 +864,8 @@ class ChatSystemSerializer(serializers.ModelSerializer):
     group_name = serializers.SerializerMethodField()
 
     def get_group_name(self, chat: ChatSystem):
-        person = chat.chat.participants.exclude(
-            pk=self.context["request"].user.id
-        ).first()
+        user_pk = self.context["request"].user.id
+        person = chat.participants.exclude(pk=user_pk).first()
         return " ".join([person.first_name, person.last_name])
 
     def get_person_of_the_last_message(self, chat: ChatSystem):
@@ -890,10 +889,11 @@ class ChatSystemSerializer(serializers.ModelSerializer):
     def get_unseen_messages_flag(self, chat: ChatSystem):
         if chat.messages is None:
             return False
-        query_set = Message.objects.filter(related_chat_group=chat.pk)
-        query_set = query_set.exclude(user__id=self.context["request"].user.id)
-        query_set = query_set.filter(seen_flag=False)
-        if query_set.exists():
+        chat_messages = chat.messages.all()
+        user = self.context["request"].user
+        other_person_chats = chat_messages.exclude(user=user)
+        unseen_messages = other_person_chats.filter(seen_flag=False)
+        if unseen_messages.exists():
             return True
         return False
 
@@ -907,13 +907,13 @@ class NoChatProfessorsListSerializer(serializers.ModelSerializer):
     university = serializers.SerializerMethodField()
 
     def get_name(self, chat: ChatSystem):
-        chat_members = chat.chat
-        professor = chat_members.participants.filter(is_student=False).first()
+        chat_members = chat.participants
+        professor = chat_members.filter(is_student=False).first()
         return " ".join([professor.first_name, professor.last_name])
 
     def get_university(self, chat: ChatSystem):
-        chat_members = chat.chat
-        professor = chat_members.participants.filter(is_student=False).first()
+        chat_members = chat.participants
+        professor = chat_members.filter(is_student=False).first()
         professor = Professor.objects.get(user__pk=professor.pk)
         if professor.university is None:
             return None
@@ -930,13 +930,13 @@ class NoChatStudentsListSerializer(serializers.ModelSerializer):
     university = serializers.SerializerMethodField()
 
     def get_name(self, chat: ChatSystem):
-        chat_members = ChatMembers.objects.select_related("chat").get(chat__id=chat.pk)
-        student = chat_members.participants.filter(is_student=True).first()
+        chat_members = chat.participants
+        student = chat_members.filter(is_student=True).first()
         return " ".join([student.first_name, student.last_name])
 
     def get_university(self, chat: ChatSystem):
-        chat_members = chat.chat
-        student = chat_members.participants.filter(is_student=False).first()
+        chat_members = chat.participants
+        student = chat_members.filter(is_student=False).first()
         student = Professor.objects.get(user__pk=student.pk)
         if student.university is None:
             return None
