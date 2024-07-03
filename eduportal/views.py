@@ -514,12 +514,10 @@ class RequestViewSet(ModelViewSet):
         request_object.status = "PA"
         request_object.save()
         new_chat = ChatSystem.objects.create(group_name=" ")
-        new_chat_members = ChatMembers.objects.create(chat=new_chat)
-        new_chat_members.participants.set(
+        new_chat.participants.set(
             [position.professor.user, request_object.student.user.id]
         )
         new_chat.save()
-        new_chat_members.save()
         return Response(status=status.HTTP_200_OK)
 
     @action(
@@ -1065,16 +1063,16 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
     queryset = ChatSystem.objects.all()
 
     def list(self, request, *args, **kwargs):
-        query_1 = ChatMembers.objects.filter(participants__id=self.request.user.id)
+        user = self.request.user.id
         base_query = (
             ChatSystem.objects.filter(start_chat=True)
-            .prefetch_related("chat")
-            .filter(chat__in=query_1)
+            .prefetch_related('participants')
+            .filter(participants__pk=user)
         )
         serializer = ChatSystemSerializer(
             base_query, many=True, context={"request": request}
         )
-        return Response(serializer.data)
+        return Response(serializer.data,status=status.HTTP_200_OK)
 
 
 class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
@@ -1083,10 +1081,8 @@ class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
     queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
-        user = User.objects.get(pk=self.request.user.id)
-        chats = ChatSystem.objects.filter(chat__in=user.chats.all()).filter(
-            start_chat=False
-        )
+        user = self.request.user
+        chats = ChatSystem.objects.filter(participants=user).filter(start_chat=False)
         return chats
 
 
@@ -1096,10 +1092,8 @@ class NoChatStudentsListViewset(ListModelMixin, GenericViewSet):
     queryset = ChatSystem.objects.all()
 
     def get_queryset(self):
-        user = User.objects.get(pk=self.request.user.id)
-        chats = ChatSystem.objects.filter(chat__in=user.chats.all()).filter(
-            start_chat=False
-        )
+        user = self.request.user
+        chats = ChatSystem.objects.filter(participants=user).filter(start_chat=False)
         return chats
 
 
@@ -1121,8 +1115,10 @@ class ChatMessagesViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
-        base_query = Message.objects.filter(related_chat_group=self.kwargs["pk"])
-        sorted_query = base_query.order_by("send_time")
+        chat_pk = self.kwargs["pk"]
+        chat = ChatSystem.objects.get(pk=chat_pk)
+        messages = chat.messages.all()
+        sorted_query = messages.order_by("send_time")
         serializer = RetrieveMessageSerializer(sorted_query, many=True)
         return Response(serializer.data)
 
@@ -1132,13 +1128,12 @@ class UpdateLastSeenMessageViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = Message.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
-        query_set = (
-            Message.objects.filter(related_chat_group__id=kwargs["pk"])
-            .select_related("user")
-            .exclude(user__id=request.user.id)
-            .filter(seen_flag=False)
-            .update(seen_flag=True)
-        )
+        chat = ChatSystem.objects.get(pk=kwargs["pk"])
+        messages = chat.messages.all()
+        user = request.user
+        other_user_messages = messages.exclude(user=user)
+        not_seen_messags = other_user_messages.filter(seen_flag=False)
+        updated_messages = not_seen_messags.update(seen_flag=True)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -1148,14 +1143,11 @@ class CreateMessageViewSet(CreateModelMixin, GenericViewSet):
     queryset = Message.objects.all()
 
     def create(self, request, *args, **kwargs):
-        last_chat = (
-            Message.objects.filter(
-                related_chat_group=request.data.get("related_chat_group")
-            )
-            .order_by("-send_time")
-            .first()
-        )
-        if last_chat is not None and last_chat.user.id == request.user.id:
+        chat_pk = request.data.get("related_chat_group")
+        chat = ChatSystem.objects.get(pk=chat_pk)
+        last_message = chat.messages.all().order_by("-send_time").first()
+        user = request.user
+        if last_message is not None and last_message.user == user:
             return Response(
                 "It's not your turn.", status=status.HTTP_405_METHOD_NOT_ALLOWED
             )
@@ -1182,18 +1174,11 @@ class NewMessagesCountViewSet(ListModelMixin, GenericViewSet):
 
     def list(self, request, *args, **kwargs):
         user = User.objects.get(pk=self.request.user.pk)
-        user_chat_membership = user.chats.all()
-        user_chats = ChatSystem.objects.filter(chat__in=user_chat_membership).filter(
-            start_chat=True
-        )
-        user_unseen_messages = (
-            Message.objects.filter(related_chat_group__in=user_chats)
-            .exclude(user=user)
-            .filter(seen_flag=False)
-        )
-        user_unseen_chats = user_chats.filter(messages__in=user_unseen_messages)
+        user_chats = user.chats.prefetch_related("messages").all()
+        chats_with_new_messages = user_chats.filter(messages__seen_flag=False)
+        number_of_new_messages = chats_with_new_messages.count()
         serializer = UnseenChatsSerializer(
-            user_unseen_chats, context={"number": user_unseen_chats.count()}
+            number_of_new_messages, context={"number": number_of_new_messages}
         )
         return Response(serializer.data)
 
