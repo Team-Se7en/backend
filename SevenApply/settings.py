@@ -164,7 +164,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "eduportal.pagination.CustomPagination",
-    "PAGE_SIZE": 5,
+    "PAGE_SIZE": 3,
 }
 
 
