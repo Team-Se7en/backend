@@ -670,7 +670,7 @@ class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     filter_backends = [OrderingFilter,SearchFilter, DjangoFilterBackend]
     filterset_class = ProfessorOwnPositionFilter
     ordering_fields = ["request_count", "fee", "position_start_date"]
-    search_fields = ["title", "description"]
+    search_fields = ["title"]
     queryset = Position.objects.all()
 
     def filter_queryset(self, queryset):
@@ -702,7 +702,7 @@ class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     permission_classes = [IsAuthenticated, IsProfessor]
     filter_backends = [OrderingFilter,SearchFilter, DjangoFilterBackend]
     filterset_class = ProfessorOtherPositionFilter
-    search_fields = ["title", "description"]
+    search_fields = ["title"]
     queryset = Position.objects.all()
     ordering_fields = ["fee", "position_start_date"]
 
