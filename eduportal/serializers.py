@@ -750,7 +750,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     def get_model_item(self, obj: Notification, model):
         print(vars(obj))
         item = None
-        item_list = getattr(obj, f"{model.__name__.lower()}_items", [])
+        item_list = getattr(obj, f"{model._meta.app_label}_{model._meta.model_name}_items", [])
         print(item_list)
         if item_list:
             item = item_list[0]
