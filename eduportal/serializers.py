@@ -736,6 +736,7 @@ class NotificationSerializer(serializers.ModelSerializer):
         stu = None
 
         request = self.get_model_item(obj, Request)
+
         if request:
             stu = request.student
         else:
@@ -747,7 +748,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     def get_model_item(self, obj: Notification, model):
         item = None
-        item_list = getattr(obj, f"{model.__name__.lower()}_items", [])
+        item_list = getattr(obj, f"{model._meta.app_label}_{model._meta.model_name}_items", [])
         if item_list:
             item = item_list[0]
         if item:

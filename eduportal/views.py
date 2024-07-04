@@ -667,9 +667,10 @@ class AdmissionViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
 class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionFilterSerializer
     permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
-    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    filter_backends = [OrderingFilter, SearchFilter, DjangoFilterBackend]
     filterset_class = ProfessorOwnPositionFilter
     ordering_fields = ["request_count", "fee", "position_start_date"]
+    search_fields = ["title"]
     queryset = Position.objects.all()
 
     def filter_queryset(self, queryset):
@@ -699,8 +700,9 @@ class ProfessorOwnPositionSearchViewSet(ListModelMixin, GenericViewSet):
 class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
-    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    filter_backends = [OrderingFilter, SearchFilter, DjangoFilterBackend]
     filterset_class = ProfessorOtherPositionFilter
+    search_fields = ["title"]
     queryset = Position.objects.all()
     ordering_fields = ["fee", "position_start_date"]
 
@@ -879,17 +881,15 @@ class NotificationViewSet(
     def get_queryset(self, **filters):
         queryset = self.get_raw_queryset(**filters).order_by("-id")
 
-        content_type_ids = (
-            NotificationItem.objects.filter(notifications__in=queryset)
-            .values_list("content_type", flat=True)
-            .distinct()
-        )
+        content_types = ContentType.objects.filter(
+            notificationitem__notifications__in=queryset
+        ).distinct()
 
-        for ct_id in content_type_ids:
-            qs = NotificationItem.objects.filter(content_type=ct_id)
+        for ct in content_types:
+            qs = NotificationItem.objects.filter(content_type=ct)
 
-            match ct_id:
-                case 10:  # request
+            match (ct.app_label, ct.model):
+                case ("eduportal", "request"):  # request
                     queryset = queryset.prefetch_related(
                         Prefetch(
                             "items",
@@ -903,10 +903,10 @@ class NotificationViewSet(
                                 "content_object__position__professor__university",
                                 "content_object__position__professor__user",
                             ),
-                            to_attr="request_items",
+                            to_attr=f"{ct.app_label}_{ct.model}_items",
                         )
                     )
-                case 9:  # position
+                case ("eduportal", "position"):  # position
                     queryset = queryset.prefetch_related(
                         Prefetch(
                             "items",
@@ -916,10 +916,10 @@ class NotificationViewSet(
                                 "content_object__professor__university",
                                 "content_object__professor__user",
                             ),
-                            to_attr="position_items",
+                            to_attr=f"{ct.app_label}_{ct.model}_items",
                         )
                     )
-                case 8:  # student
+                case ("eduportal", "student"):  # student
                     queryset = queryset.prefetch_related(
                         Prefetch(
                             "items",
@@ -928,7 +928,7 @@ class NotificationViewSet(
                                 "content_object__university",
                                 "content_object__user",
                             ),
-                            to_attr="student_items",
+                            to_attr=f"{ct.app_label}_{ct.model}_items",
                         )
                     )
                 case _:
@@ -936,7 +936,7 @@ class NotificationViewSet(
                         Prefetch(
                             "items",
                             queryset=qs,
-                            to_attr=f"items_{ct_id}",
+                            to_attr=f"{ct.app_label}_{ct.model}_items",
                         )
                     )
         return queryset
@@ -1066,13 +1066,13 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
         user = self.request.user.id
         base_query = (
             ChatSystem.objects.filter(start_chat=True)
-            .prefetch_related('participants')
+            .prefetch_related("participants")
             .filter(participants__pk=user)
         )
         serializer = ChatSystemSerializer(
             base_query, many=True, context={"request": request}
         )
-        return Response(serializer.data,status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
