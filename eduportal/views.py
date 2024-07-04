@@ -667,9 +667,10 @@ class AdmissionViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
 class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionFilterSerializer
     permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
-    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    filter_backends = [OrderingFilter,SearchFilter, DjangoFilterBackend]
     filterset_class = ProfessorOwnPositionFilter
     ordering_fields = ["request_count", "fee", "position_start_date"]
+    search_fields = ["title", "description"]
     queryset = Position.objects.all()
 
     def filter_queryset(self, queryset):
@@ -699,8 +700,9 @@ class ProfessorOwnPositionSearchViewSet(ListModelMixin, GenericViewSet):
 class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
-    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    filter_backends = [OrderingFilter,SearchFilter, DjangoFilterBackend]
     filterset_class = ProfessorOtherPositionFilter
+    search_fields = ["title", "description"]
     queryset = Position.objects.all()
     ordering_fields = ["fee", "position_start_date"]
 
