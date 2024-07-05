@@ -740,7 +740,7 @@ class NotificationSerializer(serializers.ModelSerializer):
         if request:
             stu = request.student
         else:
-            stu = self.get_model_item(obj, Student) 
+            stu = self.get_model_item(obj, Student)
 
         if stu:
             return NotifStudentSerializer(stu).data
@@ -748,7 +748,9 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     def get_model_item(self, obj: Notification, model):
         item = None
-        item_list = getattr(obj, f"{model._meta.app_label}_{model._meta.model_name}_items", [])
+        item_list = getattr(
+            obj, f"{model._meta.app_label}_{model._meta.model_name}_items", []
+        )
         if item_list:
             item = item_list[0]
         if item:
@@ -767,7 +769,7 @@ class UniversityLocationSerializer(serializers.ModelSerializer):
     country = CountrySerializer(name_only=True)
 
 
-class Top5StudentsSerializer(serializers.ModelSerializer):
+class TopStudentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = ("student_name", "major", "university", "gpa", "image")
@@ -800,7 +802,7 @@ class Top5StudentsSerializer(serializers.ModelSerializer):
         )
 
 
-class Top5ProfessorsSerializer(serializers.ModelSerializer):
+class TopProfessorsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Professor
         fields = (
