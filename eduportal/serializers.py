@@ -740,7 +740,7 @@ class NotificationSerializer(serializers.ModelSerializer):
         if request:
             stu = request.student
         else:
-            stu = self.get_model_item(obj, Student) 
+            stu = self.get_model_item(obj, Student)
 
         if stu:
             return NotifStudentSerializer(stu).data
@@ -748,7 +748,9 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     def get_model_item(self, obj: Notification, model):
         item = None
-        item_list = getattr(obj, f"{model._meta.app_label}_{model._meta.model_name}_items", [])
+        item_list = getattr(
+            obj, f"{model._meta.app_label}_{model._meta.model_name}_items", []
+        )
         if item_list:
             item = item_list[0]
         if item:
@@ -767,7 +769,7 @@ class UniversityLocationSerializer(serializers.ModelSerializer):
     country = CountrySerializer(name_only=True)
 
 
-class Top5StudentsSerializer(serializers.ModelSerializer):
+class TopStudentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = ("student_name", "major", "university", "gpa", "image")
@@ -787,20 +789,16 @@ class Top5StudentsSerializer(serializers.ModelSerializer):
         )
 
     def get_gpa(self, student: Student):
-        student_cv = CV.objects.filter(student=student).prefetch_related(
-            "education_histories"
-        )
+        student_cv = CV.objects.filter(student=student).first()
         if not student_cv:
             return 0
-        return (
-            student_cv.filter(education_histories__end_date__isnull=False)
-            .annotate(gpa_avg=Avg("education_histories__grade"))
-            .first()
-            .gpa_avg
-        )
+        gpa_avg = EducationHistory.objects.filter(
+            cv=student_cv, end_date__isnull=False
+        ).aggregate(avg_grade=Avg("grade"))["avg_grade"]
+        return gpa_avg if gpa_avg else 0
 
 
-class Top5ProfessorsSerializer(serializers.ModelSerializer):
+class TopProfessorsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Professor
         fields = (
