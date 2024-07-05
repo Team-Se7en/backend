@@ -461,6 +461,17 @@ class StudentRequestListSearchViewSet(ModelViewSet):
             )
         return super().filter_queryset(queryset)
 
+class StudentRequestListViewSet(ModelViewSet):
+    http_method_names = ["get"]
+    queryset = Request.objects.all()
+    serializer_class = StudentRequestListSeralizer
+    permission_classes = [IsAuthenticated, IsStudent]
+    filter_backends = [SearchFilter]
+    search_fields = ["student__user__first_name", "student__user__last_name"]
+
+    def filter_queryset(self, queryset):
+        queryset = queryset.filter(student__id=self.request.user.student.id)
+        return super().filter_queryset(queryset)
 
 class RequestViewSet(ModelViewSet):
     http_method_names = ["post", "get", "delete"]
