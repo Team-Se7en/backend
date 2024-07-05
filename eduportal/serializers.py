@@ -789,17 +789,13 @@ class TopStudentsSerializer(serializers.ModelSerializer):
         )
 
     def get_gpa(self, student: Student):
-        student_cv = CV.objects.filter(student=student).prefetch_related(
-            "education_histories"
-        )
+        student_cv = CV.objects.filter(student=student).first()
         if not student_cv:
             return 0
-        return (
-            student_cv.filter(education_histories__end_date__isnull=False)
-            .annotate(gpa_avg=Avg("education_histories__grade"))
-            .first()
-            .gpa_avg
-        )
+        gpa_avg = EducationHistory.objects.filter(
+            cv=student_cv, end_date__isnull=False
+        ).aggregate(avg_grade=Avg("grade"))["avg_grade"]
+        return gpa_avg if gpa_avg else 0
 
 
 class TopProfessorsSerializer(serializers.ModelSerializer):
