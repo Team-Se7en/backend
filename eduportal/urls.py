@@ -17,6 +17,9 @@ router.register("requests", views.RequestViewSet, basename="request")
 router.register(
     "stud_requests", views.StudentRequestListSearchViewSet, basename="stud_request"
 )
+router.register(
+    "get_student_requests", views.StudentRequestListViewSet, basename="student_request"
+)
 router.register("admissions", views.AdmissionViewSet, basename="admission")
 router.register("userinfo", views.UserInfoViewSet, basename="userinfo")
 router.register("top_students", views.TopStudentsViewSet, basename="top_students")
