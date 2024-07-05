@@ -417,7 +417,6 @@ class ProfessorPositionListSerializer(
 ):
     pass
 
-
 class OwnerPositionListSerializer(
     BasePositionListSerializer,
 ):
@@ -510,6 +509,9 @@ class ProfessorPositionFilterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Position
         fields = (
+            "id",
+            "university_id",
+            "status",
             "title",
             "start_date",
             "end_date",
@@ -522,7 +524,24 @@ class ProfessorPositionFilterSerializer(serializers.ModelSerializer):
             "tags",
         )
 
+    status = serializers.SerializerMethodField("get_status")
     university_name = serializers.SerializerMethodField()
+    university_id = serializers.SerializerMethodField()
+
+    def get_status(self, pos: Position) -> str:
+        (OPEN, CLOSED, INACTIVE) = ("Open", "Closed", "Not Active")
+        if pos.start_date > timezone.now().date():
+            return INACTIVE
+        if pos.capacity <= pos.filled:
+            return CLOSED
+        if pos.end_date < timezone.now().date():
+            return CLOSED
+        return OPEN
+
+    def get_university_id(self,pos:Position):
+        if pos.professor.university is not None:
+            return pos.professor.university.id
+        return None 
 
     def get_university_name(self, pos: Position):
         if pos.professor.university is not None:
