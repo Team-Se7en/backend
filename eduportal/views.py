@@ -2,7 +2,8 @@ from bisect import bisect_right
 from pprint import pprint
 from random import sample
 from django.contrib.auth import get_user_model
-from django.db.models import Prefetch, Min, Count, Avg, Q
+from django.db.models import Prefetch, Min, Count, Avg, Q, Value
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
 from django.http import Http404, HttpResponse
@@ -1016,12 +1017,15 @@ class TopStudentsViewSet(ListModelMixin, GenericViewSet):
         educations_with_date = EducationHistory.objects.exclude(end_date__isnull=True)
 
         return (
-            Student.objects.select_related("cv")
+            Student.objects.select_related("cv", "user", "university")
             .filter(major=self.request.user.professor.major)
             .annotate(
-                avg_grade=Avg(
-                    "cv__education_histories__grade",
-                    filter=Q(cv__education_histories__in=educations_with_date),
+                avg_grade=Coalesce(
+                    Avg(
+                        "cv__education_histories__grade",
+                        filter=Q(cv__education_histories__in=educations_with_date),
+                    ),
+                    Value(0.0)
                 )
             )
             .order_by("-avg_grade")
