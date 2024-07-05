@@ -19,10 +19,8 @@ router.register(
 )
 router.register("admissions", views.AdmissionViewSet, basename="admission")
 router.register("userinfo", views.UserInfoViewSet, basename="userinfo")
-router.register("top_students", views.Top5StudentsViewSet, basename="top_students")
-router.register(
-    "top_professors", views.Top5ProfessorsViewSet, basename="top_professors"
-)
+router.register("top_students", views.TopStudentsViewSet, basename="top_students")
+router.register("top_professors", views.TopProfessorsViewSet, basename="top_professors")
 router.register(
     "prof_own_position_filter",
     views.ProfessorOwnPositionFilteringViewSet,

@@ -2,7 +2,8 @@ from bisect import bisect_right
 from pprint import pprint
 from random import sample
 from django.contrib.auth import get_user_model
-from django.db.models import Prefetch, Min, Count, Avg
+from django.db.models import Prefetch, Min, Count, Avg, Q, Value
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
 from django.http import Http404, HttpResponse
@@ -667,7 +668,7 @@ class AdmissionViewSet(UpdateModelMixin, ListModelMixin, GenericViewSet):
 class ProfessorOwnPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionFilterSerializer
     permission_classes = [IsAuthenticated, IsProfessor, IsPositionOwner]
-    filter_backends = [OrderingFilter,SearchFilter, DjangoFilterBackend]
+    filter_backends = [OrderingFilter, SearchFilter, DjangoFilterBackend]
     filterset_class = ProfessorOwnPositionFilter
     ordering_fields = ["request_count", "fee", "position_start_date"]
     search_fields = ["title"]
@@ -700,7 +701,7 @@ class ProfessorOwnPositionSearchViewSet(ListModelMixin, GenericViewSet):
 class ProfessorOtherPositionFilteringViewSet(ListModelMixin, GenericViewSet):
     serializer_class = ProfessorPositionListSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
-    filter_backends = [OrderingFilter,SearchFilter, DjangoFilterBackend]
+    filter_backends = [OrderingFilter, SearchFilter, DjangoFilterBackend]
     filterset_class = ProfessorOtherPositionFilter
     search_fields = ["title"]
     queryset = Position.objects.all()
@@ -881,17 +882,15 @@ class NotificationViewSet(
     def get_queryset(self, **filters):
         queryset = self.get_raw_queryset(**filters).order_by("-id")
 
-        content_type_ids = (
-            NotificationItem.objects.filter(notifications__in=queryset)
-            .values_list("content_type", flat=True)
-            .distinct()
-        )
+        content_types = ContentType.objects.filter(
+            notificationitem__notifications__in=queryset
+        ).distinct()
 
-        for ct_id in content_type_ids:
-            qs = NotificationItem.objects.filter(content_type=ct_id)
+        for ct in content_types:
+            qs = NotificationItem.objects.filter(content_type=ct)
 
-            match ct_id:
-                case 10:  # request
+            match (ct.app_label, ct.model):
+                case ("eduportal", "request"):  # request
                     queryset = queryset.prefetch_related(
                         Prefetch(
                             "items",
@@ -905,10 +904,10 @@ class NotificationViewSet(
                                 "content_object__position__professor__university",
                                 "content_object__position__professor__user",
                             ),
-                            to_attr="request_items",
+                            to_attr=f"{ct.app_label}_{ct.model}_items",
                         )
                     )
-                case 9:  # position
+                case ("eduportal", "position"):  # position
                     queryset = queryset.prefetch_related(
                         Prefetch(
                             "items",
@@ -918,10 +917,10 @@ class NotificationViewSet(
                                 "content_object__professor__university",
                                 "content_object__professor__user",
                             ),
-                            to_attr="position_items",
+                            to_attr=f"{ct.app_label}_{ct.model}_items",
                         )
                     )
-                case 8:  # student
+                case ("eduportal", "student"):  # student
                     queryset = queryset.prefetch_related(
                         Prefetch(
                             "items",
@@ -930,7 +929,7 @@ class NotificationViewSet(
                                 "content_object__university",
                                 "content_object__user",
                             ),
-                            to_attr="student_items",
+                            to_attr=f"{ct.app_label}_{ct.model}_items",
                         )
                     )
                 case _:
@@ -938,7 +937,7 @@ class NotificationViewSet(
                         Prefetch(
                             "items",
                             queryset=qs,
-                            to_attr=f"items_{ct_id}",
+                            to_attr=f"{ct.app_label}_{ct.model}_items",
                         )
                     )
         return queryset
@@ -1007,53 +1006,80 @@ class NotificationViewSet(
         )
 
 
-# Top 5 Students ViewSet -------------------------------------------------------
+# Top Students ViewSet ---------------------------------------------------------
 
 
-class Top5StudentsViewSet(ListModelMixin, GenericViewSet):
-    serializer_class = Top5StudentsSerializer
+class TopStudentsViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = TopStudentsSerializer
     permission_classes = [IsAuthenticated, IsProfessor]
 
-    def list(self, request, *args, **kwargs):
+    def get_queryset(self):
         educations_with_date = EducationHistory.objects.exclude(end_date__isnull=True)
 
-        cvs_with_avg_grade = (
-            CV.objects.select_related("student")
-            .filter(student__major=request.user.professor.major)
-            .filter(education_histories__in=educations_with_date)
-            .annotate(avg_grade=Avg("education_histories__grade"))
+        return (
+            Student.objects.select_related("cv", "user", "university")
+            .filter(major=self.request.user.professor.major)
+            .annotate(
+                avg_grade=Coalesce(
+                    Avg(
+                        "cv__education_histories__grade",
+                        filter=Q(cv__education_histories__in=educations_with_date),
+                    ),
+                    Value(0.0)
+                )
+            )
+            .order_by("-avg_grade")
         )
 
-        top_cvs = cvs_with_avg_grade.order_by("-avg_grade")[:5]
+    # def list(self, request, *args, **kwargs):
+    #     educations_with_date = EducationHistory.objects.exclude(end_date__isnull=True)
 
-        top_students = (
-            Student.objects.select_related("cv")
-            .filter(major__isnull=False)
-            .filter(major=request.user.professor.major)
-            .filter(cv__in=top_cvs)
-        )
+    #     cvs_with_avg_grade = (
+    #         CV.objects.select_related("student")
+    #         .filter(student__major=request.user.professor.major)
+    #         .filter(education_histories__in=educations_with_date)
+    #         .annotate(avg_grade=Avg("education_histories__grade"))
+    #     )
 
-        seralizer = Top5StudentsSerializer(top_students, many=True)
+    #     top_cvs = cvs_with_avg_grade.order_by("-avg_grade")[:5]
 
-        return Response(seralizer.data)
+    #     top_students = (
+    #         Student.objects.select_related("cv")
+    #         .filter(major__isnull=False)
+    #         .filter(major=request.user.professor.major)
+    #         .filter(cv__in=top_cvs)
+    #     )
+
+    #     seralizer = TopStudentsSerializer(top_students, many=True)
+
+    #     return Response(seralizer.data)
 
 
-class Top5ProfessorsViewSet(ListModelMixin, GenericViewSet):
-    serializer_class = Top5ProfessorsSerializer
+class TopProfessorsViewSet(ListModelMixin, GenericViewSet):
+    serializer_class = TopProfessorsSerializer
     permission_classes = [IsAuthenticated, IsStudent]
 
-    def list(self, request, *args, **kwargs):
-        top_professors = (
+    def get_queryset(self):
+        return (
             Professor.objects.filter(major__isnull=False)
-            .filter(major=request.user.student.major)
+            .filter(major=self.request.user.student.major)
             .select_related("cv")
             .annotate(project_num=Count("cv__project_experiences"))
-            .order_by("-project_num")[:5]
+            .order_by("-project_num")
         )
 
-        seralizer = Top5ProfessorsSerializer(top_professors, many=True)
+    # def list(self, request, *args, **kwargs):
+    #     top_professors = (
+    #         Professor.objects.filter(major__isnull=False)
+    #         .filter(major=request.user.student.major)
+    #         .select_related("cv")
+    #         .annotate(project_num=Count("cv__project_experiences"))
+    #         .order_by("-project_num")[:5]
+    #     )
 
-        return Response(seralizer.data)
+    #     seralizer = TopProfessorsSerializer(top_professors, many=True)
+
+    #     return Response(seralizer.data)
 
 
 # Chat List ViewSet ------------------------------------------------------------
@@ -1068,13 +1094,13 @@ class ChatListViewSet(ListModelMixin, GenericViewSet):
         user = self.request.user.id
         base_query = (
             ChatSystem.objects.filter(start_chat=True)
-            .prefetch_related('participants')
+            .prefetch_related("participants")
             .filter(participants__pk=user)
         )
         serializer = ChatSystemSerializer(
             base_query, many=True, context={"request": request}
         )
-        return Response(serializer.data,status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class NoChatProfessorsListViewset(ListModelMixin, GenericViewSet):
